@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Settings, User } from "lucide-react";
 import AgentMode from "@/components/AgentMode";
 import EditorMode from "@/components/EditorMode";
@@ -60,6 +62,29 @@ const initialSteps: CallStep[] = [
 export default function CallDashboard() {
   const [mode, setMode] = useState<'agent' | 'editor'>('agent');
   const [steps, setSteps] = useState<CallStep[]>(initialSteps);
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [password, setPassword] = useState("");
+  const [isEditorUnlocked, setIsEditorUnlocked] = useState(false);
+
+  const handleEditorAccess = () => {
+    if (password === "CCONE777") {
+      setIsEditorUnlocked(true);
+      setMode('editor');
+      setShowPasswordDialog(false);
+      setPassword("");
+    } else {
+      alert("Falsches Passwort!");
+      setPassword("");
+    }
+  };
+
+  const handleModeSwitch = (newMode: 'agent' | 'editor') => {
+    if (newMode === 'editor' && !isEditorUnlocked) {
+      setShowPasswordDialog(true);
+    } else {
+      setMode(newMode);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background p-6">
@@ -77,7 +102,7 @@ export default function CallDashboard() {
                 <Button
                   variant={mode === 'agent' ? 'default' : 'ghost'}
                   size="sm"
-                  onClick={() => setMode('agent')}
+                  onClick={() => handleModeSwitch('agent')}
                   className="text-xs"
                 >
                   <User className="w-4 h-4 mr-1" />
@@ -86,7 +111,7 @@ export default function CallDashboard() {
                 <Button
                   variant={mode === 'editor' ? 'default' : 'ghost'}
                   size="sm"
-                  onClick={() => setMode('editor')}
+                  onClick={() => handleModeSwitch('editor')}
                   className="text-xs"
                 >
                   <Settings className="w-4 h-4 mr-1" />
@@ -103,6 +128,35 @@ export default function CallDashboard() {
         ) : (
           <EditorMode steps={steps} onStepsUpdate={setSteps} />
         )}
+
+        {/* Password Dialog */}
+        <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Editor-Zugang</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Bitte geben Sie das Passwort ein, um in den Editor-Modus zu wechseln:
+              </p>
+              <Input
+                type="password"
+                placeholder="Passwort eingeben"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleEditorAccess()}
+              />
+              <div className="flex justify-end space-x-2">
+                <Button variant="outline" onClick={() => setShowPasswordDialog(false)}>
+                  Abbrechen
+                </Button>
+                <Button onClick={handleEditorAccess}>
+                  Zugang
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

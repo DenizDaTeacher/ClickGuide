@@ -54,17 +54,56 @@ export default function EditorMode({ steps, onStepsUpdate }: EditorModeProps) {
     onStepsUpdate(updatedSteps);
   };
 
-  const exportConfiguration = () => {
-    const config = {
-      steps,
-      exportDate: new Date().toISOString()
-    };
-    const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `clickguide-config-${new Date().toISOString().split('T')[0]}.json`;
-    a.click();
+  const exportConfiguration = async () => {
+    const XLSX = await import('xlsx');
+    
+    // Statistics data
+    const statsData = [
+      ['Statistik', 'Wert'],
+      ['Gesamte Anrufe', mockAnalytics.totalCalls],
+      ['Authentifizierungsfehler', mockAnalytics.authFailures],
+      ['Durchschnittliche Gesprächsdauer', mockAnalytics.averageCallDuration],
+      ['Abschlussrate (%)', mockAnalytics.completionRate],
+      ['Meist übersprungener Schritt', mockAnalytics.mostSkippedStep],
+      ['Hauptverkehrszeit', mockAnalytics.peakHours],
+    ];
+
+    // Call breakdown data
+    const callBreakdownData = [
+      ['Abbruchgrund', 'Anzahl', 'Schritt'],
+      ['Authentifizierung fehlgeschlagen', 12, 'Kundenidentifikation'],
+      ['Kunde aufgelegt', 8, 'Datenschutz'],
+      ['Zeitüberschreitung', 5, 'Anliegen erfassen'],
+      ['Technischer Fehler', 3, 'Datenverifikation'],
+      ['Erfolgreich abgeschlossen', 119, 'Abschluss'],
+    ];
+
+    // Steps configuration
+    const stepsData = [
+      ['Schritt', 'Titel', 'Beschreibung', 'Kommunikation', 'Pflicht'],
+      ...steps.map((step, index) => [
+        index + 1,
+        step.title,
+        step.description,
+        step.communication,
+        step.required ? 'Ja' : 'Nein'
+      ])
+    ];
+
+    // Create workbook
+    const wb = XLSX.utils.book_new();
+    
+    // Add worksheets
+    const wsStats = XLSX.utils.aoa_to_sheet(statsData);
+    const wsBreakdown = XLSX.utils.aoa_to_sheet(callBreakdownData);
+    const wsSteps = XLSX.utils.aoa_to_sheet(stepsData);
+    
+    XLSX.utils.book_append_sheet(wb, wsStats, 'Statistiken');
+    XLSX.utils.book_append_sheet(wb, wsBreakdown, 'Anruf-Analyse');
+    XLSX.utils.book_append_sheet(wb, wsSteps, 'Schritte-Konfiguration');
+
+    // Export file
+    XLSX.writeFile(wb, `ClickGuide-Export-${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
   const mockAnalytics = {
@@ -73,7 +112,13 @@ export default function EditorMode({ steps, onStepsUpdate }: EditorModeProps) {
     averageCallDuration: "4:32",
     completionRate: 89,
     mostSkippedStep: "Datenschutz",
-    peakHours: "10:00-12:00"
+    peakHours: "10:00-12:00",
+    callsAbortedAtStep: {
+      "Kundenidentifikation": 12,
+      "Datenschutz": 8,
+      "Anliegen erfassen": 5,
+      "Datenverifikation": 3
+    }
   };
 
   return (
