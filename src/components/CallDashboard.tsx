@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -61,10 +61,18 @@ const initialSteps: CallStep[] = [
 
 export default function CallDashboard() {
   const [mode, setMode] = useState<'agent' | 'editor'>('agent');
-  const [steps, setSteps] = useState<CallStep[]>(initialSteps);
+  const [steps, setSteps] = useState<CallStep[]>(() => {
+    const savedSteps = localStorage.getItem('clickguide-steps');
+    return savedSteps ? JSON.parse(savedSteps) : initialSteps;
+  });
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const [password, setPassword] = useState("");
   const [isEditorUnlocked, setIsEditorUnlocked] = useState(false);
+
+  // Save steps to localStorage whenever steps change
+  useEffect(() => {
+    localStorage.setItem('clickguide-steps', JSON.stringify(steps));
+  }, [steps]);
 
   const handleEditorAccess = () => {
     if (password === "CCONE777") {
