@@ -8,22 +8,13 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Plus, Edit, Trash2, BarChart3, Download, Save } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-
-interface CallStep {
-  id: string;
-  title: string;
-  description: string;
-  communication: string;
-  completed: boolean;
-  required: boolean;
-}
+import { useCallSteps, CallStep } from "@/hooks/useCallSteps";
 
 interface EditorModeProps {
   steps: CallStep[];
-  onStepsUpdate: (steps: CallStep[]) => void;
 }
 
-export default function EditorMode({ steps, onStepsUpdate }: EditorModeProps) {
+export default function EditorMode({ steps }: EditorModeProps) {
   const [editingStep, setEditingStep] = useState<CallStep | null>(null);
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [newStep, setNewStep] = useState<Partial<CallStep>>({
@@ -32,26 +23,26 @@ export default function EditorMode({ steps, onStepsUpdate }: EditorModeProps) {
     communication: "",
     required: false
   });
+  
+  const { saveStep, deleteStep } = useCallSteps();
 
-  const handleSaveStep = (step: CallStep) => {
-    if (editingStep) {
-      const updatedSteps = steps.map(s => s.id === step.id ? step : s);
-      onStepsUpdate(updatedSteps);
-    } else {
-      const newStepWithId = {
-        ...step,
-        id: `step-${Date.now()}`,
-        completed: false
-      };
-      onStepsUpdate([...steps, newStepWithId]);
+  const handleSaveStep = async (step: CallStep) => {
+    const isNew = !editingStep;
+    const stepToSave = isNew ? {
+      ...step,
+      id: `step-${Date.now()}`,
+      completed: false
+    } : step;
+
+    const success = await saveStep(stepToSave, isNew);
+    if (success) {
+      setEditingStep(null);
+      setNewStep({ title: "", description: "", communication: "", required: false });
     }
-    setEditingStep(null);
-    setNewStep({ title: "", description: "", communication: "", required: false });
   };
 
-  const handleDeleteStep = (stepId: string) => {
-    const updatedSteps = steps.filter(s => s.id !== stepId);
-    onStepsUpdate(updatedSteps);
+  const handleDeleteStep = async (stepId: string) => {
+    await deleteStep(stepId);
   };
 
   const exportConfiguration = async () => {

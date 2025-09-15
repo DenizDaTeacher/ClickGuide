@@ -4,15 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { CheckCircle, AlertCircle, Phone, User, Shield, FileText, Clock } from "lucide-react";
-
-interface CallStep {
-  id: string;
-  title: string;
-  description: string;
-  communication: string;
-  completed: boolean;
-  required: boolean;
-}
+import { CallStep } from "@/hooks/useCallSteps";
 
 interface AgentModeProps {
   steps: CallStep[];
