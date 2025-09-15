@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      call_steps: {
+        Row: {
+          communication: string
+          created_at: string
+          description: string
+          id: string
+          required: boolean
+          sort_order: number
+          step_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          communication: string
+          created_at?: string
+          description: string
+          id?: string
+          required?: boolean
+          sort_order?: number
+          step_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          communication?: string
+          created_at?: string
+          description?: string
+          id?: string
+          required?: boolean
+          sort_order?: number
+          step_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       game_runs: {
         Row: {
           coins: number | null

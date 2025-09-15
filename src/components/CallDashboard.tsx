@@ -4,6 +4,8 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Settings, User } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import AgentMode from "@/components/AgentMode";
 import EditorMode from "@/components/EditorMode";
 
@@ -61,18 +63,119 @@ const initialSteps: CallStep[] = [
 
 export default function CallDashboard() {
   const [mode, setMode] = useState<'agent' | 'editor'>('agent');
-  const [steps, setSteps] = useState<CallStep[]>(() => {
-    const savedSteps = localStorage.getItem('clickguide-steps');
-    return savedSteps ? JSON.parse(savedSteps) : initialSteps;
-  });
+  const [steps, setSteps] = useState<CallStep[]>([]);
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const [password, setPassword] = useState("");
   const [isEditorUnlocked, setIsEditorUnlocked] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
-  // Save steps to localStorage whenever steps change
+  // Load steps from Supabase on component mount
   useEffect(() => {
-    localStorage.setItem('clickguide-steps', JSON.stringify(steps));
-  }, [steps]);
+    loadStepsFromDatabase();
+  }, []);
+
+  const loadStepsFromDatabase = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('call_steps')
+        .select('*')
+        .order('sort_order', { ascending: true });
+
+      if (error) {
+        console.error('Error loading steps:', error);
+        // Fallback to initial steps if database fails
+        setSteps(initialSteps);
+        toast({
+          title: "Warnung",
+          description: "Schritte konnten nicht geladen werden. Verwende Standardkonfiguration.",
+          variant: "destructive",
+        });
+      } else if (data && data.length > 0) {
+        // Convert database format to component format
+        const convertedSteps: CallStep[] = data.map(dbStep => ({
+          id: dbStep.step_id,
+          title: dbStep.title,
+          description: dbStep.description,
+          communication: dbStep.communication,
+          completed: false,
+          required: dbStep.required
+        }));
+        setSteps(convertedSteps);
+      } else {
+        // No data in database, use initial steps
+        setSteps(initialSteps);
+        await saveInitialStepsToDatabase();
+      }
+    } catch (error) {
+      console.error('Error loading steps:', error);
+      setSteps(initialSteps);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const saveInitialStepsToDatabase = async () => {
+    try {
+      const dbSteps = initialSteps.map((step, index) => ({
+        step_id: step.id,
+        title: step.title,
+        description: step.description,
+        communication: step.communication,
+        required: step.required,
+        sort_order: index + 1
+      }));
+
+      await supabase.from('call_steps').insert(dbSteps);
+    } catch (error) {
+      console.error('Error saving initial steps:', error);
+    }
+  };
+
+  const saveStepsToDatabase = async (updatedSteps: CallStep[]) => {
+    try {
+      // Delete all existing steps
+      await supabase.from('call_steps').delete().neq('step_id', '');
+
+      // Insert updated steps
+      const dbSteps = updatedSteps.map((step, index) => ({
+        step_id: step.id,
+        title: step.title,
+        description: step.description,
+        communication: step.communication,
+        required: step.required,
+        sort_order: index + 1
+      }));
+
+      const { error } = await supabase.from('call_steps').insert(dbSteps);
+      
+      if (error) {
+        console.error('Error saving steps:', error);
+        toast({
+          title: "Fehler",
+          description: "Änderungen konnten nicht gespeichert werden.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Gespeichert",
+          description: "Änderungen wurden erfolgreich gespeichert.",
+        });
+      }
+    } catch (error) {
+      console.error('Error saving steps:', error);
+      toast({
+        title: "Fehler",
+        description: "Änderungen konnten nicht gespeichert werden.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleStepsUpdate = async (updatedSteps: CallStep[]) => {
+    setSteps(updatedSteps);
+    await saveStepsToDatabase(updatedSteps);
+  };
 
   const handleEditorAccess = () => {
     if (password === "CCONE777") {
@@ -93,6 +196,17 @@ export default function CallDashboard() {
       setMode(newMode);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background p-6 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Lade Konfiguration...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background p-6">
@@ -132,9 +246,9 @@ export default function CallDashboard() {
 
         {/* Content based on mode */}
         {mode === 'agent' ? (
-          <AgentMode steps={steps} onStepsUpdate={setSteps} />
+          <AgentMode steps={steps} onStepsUpdate={handleStepsUpdate} />
         ) : (
-          <EditorMode steps={steps} onStepsUpdate={setSteps} />
+          <EditorMode steps={steps} onStepsUpdate={handleStepsUpdate} />
         )}
 
         {/* Password Dialog */}
