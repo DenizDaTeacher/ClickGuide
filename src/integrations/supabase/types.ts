@@ -17,38 +17,70 @@ export type Database = {
       call_steps: {
         Row: {
           communication: string
+          condition_label: string | null
           created_at: string
           description: string
           id: string
+          is_end_step: boolean | null
+          is_start_step: boolean | null
+          next_step_conditions: Json | null
+          parent_step_id: string | null
+          position_x: number | null
+          position_y: number | null
           required: boolean
           sort_order: number
           step_id: string
+          step_type: string
           title: string
           updated_at: string
         }
         Insert: {
           communication: string
+          condition_label?: string | null
           created_at?: string
           description: string
           id?: string
+          is_end_step?: boolean | null
+          is_start_step?: boolean | null
+          next_step_conditions?: Json | null
+          parent_step_id?: string | null
+          position_x?: number | null
+          position_y?: number | null
           required?: boolean
           sort_order?: number
           step_id: string
+          step_type?: string
           title: string
           updated_at?: string
         }
         Update: {
           communication?: string
+          condition_label?: string | null
           created_at?: string
           description?: string
           id?: string
+          is_end_step?: boolean | null
+          is_start_step?: boolean | null
+          next_step_conditions?: Json | null
+          parent_step_id?: string | null
+          position_x?: number | null
+          position_y?: number | null
           required?: boolean
           sort_order?: number
           step_id?: string
+          step_type?: string
           title?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "call_steps_parent_step_id_fkey"
+            columns: ["parent_step_id"]
+            isOneToOne: false
+            referencedRelation: "call_steps"
+            referencedColumns: ["step_id"]
+          },
+        ]
       }
       game_runs: {
         Row: {

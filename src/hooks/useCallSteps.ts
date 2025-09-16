@@ -9,6 +9,18 @@ export interface CallStep {
   communication: string;
   completed: boolean;
   required: boolean;
+  parentStepId?: string;
+  stepType: 'normal' | 'condition' | 'sub_step' | 'decision';
+  conditionLabel?: string;
+  nextStepConditions: Array<{
+    condition: string;
+    nextStepId: string;
+    label: string;
+  }>;
+  positionX: number;
+  positionY: number;
+  isStartStep: boolean;
+  isEndStep: boolean;
 }
 
 export function useCallSteps() {
@@ -42,7 +54,15 @@ export function useCallSteps() {
           description: step.description,
           communication: step.communication,
           completed: false, // Always start as false for agent mode
-          required: step.required
+          required: step.required,
+          parentStepId: step.parent_step_id || undefined,
+          stepType: (step.step_type as CallStep['stepType']) || 'normal',
+          conditionLabel: step.condition_label || undefined,
+          nextStepConditions: (step.next_step_conditions as CallStep['nextStepConditions']) || [],
+          positionX: step.position_x || 0,
+          positionY: step.position_y || 0,
+          isStartStep: step.is_start_step || false,
+          isEndStep: step.is_end_step || false
         }));
         setSteps(formattedSteps);
       }
@@ -61,6 +81,21 @@ export function useCallSteps() {
   // Save a step to Supabase
   const saveStep = async (step: CallStep, isNew: boolean = false) => {
     try {
+      const stepData = {
+        title: step.title,
+        description: step.description,
+        communication: step.communication,
+        required: step.required,
+        parent_step_id: step.parentStepId,
+        step_type: step.stepType,
+        condition_label: step.conditionLabel,
+        next_step_conditions: step.nextStepConditions,
+        position_x: step.positionX,
+        position_y: step.positionY,
+        is_start_step: step.isStartStep,
+        is_end_step: step.isEndStep
+      };
+
       if (isNew) {
         // Insert new step
         const maxSortOrder = Math.max(...steps.map(s => steps.findIndex(step => step.id === s.id) + 1), 0);
@@ -68,11 +103,8 @@ export function useCallSteps() {
           .from('call_steps')
           .insert({
             step_id: step.id,
-            title: step.title,
-            description: step.description,
-            communication: step.communication,
-            required: step.required,
-            sort_order: maxSortOrder + 1
+            sort_order: maxSortOrder + 1,
+            ...stepData
           });
 
         if (error) {
@@ -88,12 +120,7 @@ export function useCallSteps() {
         // Update existing step
         const { error } = await supabase
           .from('call_steps')
-          .update({
-            title: step.title,
-            description: step.description,
-            communication: step.communication,
-            required: step.required
-          })
+          .update(stepData)
           .eq('step_id', step.id);
 
         if (error) {

@@ -1,49 +1,22 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Plus, Edit, Trash2, BarChart3, Download, Save } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { BarChart3, Download, Workflow, List } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useCallSteps, CallStep } from "@/hooks/useCallSteps";
+import { WorkflowEditor } from "./WorkflowEditor";
 
 interface EditorModeProps {
   steps: CallStep[];
 }
 
 export default function EditorMode({ steps }: EditorModeProps) {
-  const [editingStep, setEditingStep] = useState<CallStep | null>(null);
   const [showAnalytics, setShowAnalytics] = useState(false);
-  const [newStep, setNewStep] = useState<Partial<CallStep>>({
-    title: "",
-    description: "",
-    communication: "",
-    required: false
-  });
+  const [viewMode, setViewMode] = useState<'workflow' | 'list'>('workflow');
   
   const { saveStep, deleteStep } = useCallSteps();
-
-  const handleSaveStep = async (step: CallStep) => {
-    const isNew = !editingStep;
-    const stepToSave = isNew ? {
-      ...step,
-      id: `step-${Date.now()}`,
-      completed: false
-    } : step;
-
-    const success = await saveStep(stepToSave, isNew);
-    if (success) {
-      setEditingStep(null);
-      setNewStep({ title: "", description: "", communication: "", required: false });
-    }
-  };
-
-  const handleDeleteStep = async (stepId: string) => {
-    await deleteStep(stepId);
-  };
 
   const exportConfiguration = async () => {
     const XLSX = await import('xlsx');
@@ -69,15 +42,17 @@ export default function EditorMode({ steps }: EditorModeProps) {
       ['Erfolgreich abgeschlossen', 119, 'Abschluss'],
     ];
 
-    // Steps configuration
+    // Steps configuration with workflow data
     const stepsData = [
-      ['Schritt', 'Titel', 'Beschreibung', 'Kommunikation', 'Pflicht'],
+      ['Schritt', 'Titel', 'Beschreibung', 'Typ', 'Verzweigungen', 'Position X', 'Position Y'],
       ...steps.map((step, index) => [
         index + 1,
         step.title,
         step.description,
-        step.communication,
-        step.required ? 'Ja' : 'Nein'
+        step.stepType,
+        step.nextStepConditions.map(c => c.label).join(', '),
+        step.positionX,
+        step.positionY
       ])
     ];
 
@@ -91,10 +66,10 @@ export default function EditorMode({ steps }: EditorModeProps) {
     
     XLSX.utils.book_append_sheet(wb, wsStats, 'Statistiken');
     XLSX.utils.book_append_sheet(wb, wsBreakdown, 'Anruf-Analyse');
-    XLSX.utils.book_append_sheet(wb, wsSteps, 'Schritte-Konfiguration');
+    XLSX.utils.book_append_sheet(wb, wsSteps, 'Workflow-Konfiguration');
 
     // Export file
-    XLSX.writeFile(wb, `ClickGuide-Export-${new Date().toISOString().split('T')[0]}.xlsx`);
+    XLSX.writeFile(wb, `ClickGuide-Workflow-Export-${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
   const mockAnalytics = {
@@ -113,14 +88,27 @@ export default function EditorMode({ steps }: EditorModeProps) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col h-full">
       {/* Editor Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between p-4 border-b">
         <div>
-          <h2 className="text-2xl font-semibold">Prozess-Editor</h2>
-          <p className="text-muted-foreground">Verwalten Sie Ihre Gesprächsabläufe ohne Code</p>
+          <h2 className="text-2xl font-semibold">Workflow-Editor</h2>
+          <p className="text-muted-foreground">Erstellen Sie komplexe Gesprächsabläufe mit Verzweigungen</p>
         </div>
-        <div className="flex space-x-3">
+        <div className="flex items-center space-x-3">
+          {/* View Mode Toggle */}
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="viewMode"
+              checked={viewMode === 'workflow'}
+              onCheckedChange={(checked) => setViewMode(checked ? 'workflow' : 'list')}
+            />
+            <Label htmlFor="viewMode" className="flex items-center space-x-2">
+              {viewMode === 'workflow' ? <Workflow className="w-4 h-4" /> : <List className="w-4 h-4" />}
+              <span>{viewMode === 'workflow' ? 'Workflow-Ansicht' : 'Listen-Ansicht'}</span>
+            </Label>
+          </div>
+          
           <Button onClick={() => setShowAnalytics(true)} variant="outline">
             <BarChart3 className="w-4 h-4 mr-2" />
             Analytics
@@ -132,80 +120,47 @@ export default function EditorMode({ steps }: EditorModeProps) {
         </div>
       </div>
 
-      {/* Steps Management */}
-      <Card className="shadow-card">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Gesprächsschritte verwalten</CardTitle>
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button className="bg-gradient-primary">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Neuer Schritt
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-2xl">
-                <DialogHeader>
-                  <DialogTitle>Neuen Schritt hinzufügen</DialogTitle>
-                </DialogHeader>
-                <StepEditor 
-                  step={newStep as CallStep}
-                  onSave={handleSaveStep}
-                  onCancel={() => setNewStep({ title: "", description: "", communication: "", required: false })}
-                />
-              </DialogContent>
-            </Dialog>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {steps.map((step, index) => (
-              <div key={step.id} className="border rounded-lg p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <Badge variant="outline">{index + 1}</Badge>
-                    <h3 className="font-semibold">{step.title}</h3>
-                    {step.required && (
-                      <Badge variant="destructive" className="text-xs">Pflicht</Badge>
-                    )}
-                  </div>
-                  <div className="flex space-x-2">
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button variant="outline" size="sm" onClick={() => setEditingStep(step)}>
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="max-w-2xl">
-                        <DialogHeader>
-                          <DialogTitle>Schritt bearbeiten</DialogTitle>
-                        </DialogHeader>
-                        <StepEditor 
-                          step={step}
-                          onSave={handleSaveStep}
-                          onCancel={() => setEditingStep(null)}
-                        />
-                      </DialogContent>
-                    </Dialog>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => handleDeleteStep(step.id)}
-                      className="text-destructive hover:text-destructive"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
+      {/* Main Content */}
+      <div className="flex-1 overflow-hidden">
+        {viewMode === 'workflow' ? (
+          <WorkflowEditor
+            steps={steps}
+            onSaveStep={saveStep}
+            onDeleteStep={deleteStep}
+          />
+        ) : (
+          <div className="p-4 h-full overflow-auto">
+            <Card className="shadow-card">
+              <CardHeader>
+                <CardTitle>Gesprächsschritte (Listen-Ansicht)</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {steps.map((step, index) => (
+                    <div key={step.id} className="border rounded-lg p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <span className="font-mono text-sm">{index + 1}</span>
+                          <h3 className="font-semibold">{step.title}</h3>
+                          {step.stepType !== 'normal' && (
+                            <span className="text-xs px-2 py-1 bg-muted rounded">{step.stepType}</span>
+                          )}
+                        </div>
+                      </div>
+                      <p className="text-sm text-muted-foreground">{step.description}</p>
+                      {step.nextStepConditions.length > 0 && (
+                        <div className="text-sm">
+                          <strong>Verzweigungen:</strong> {step.nextStepConditions.map(c => c.label).join(', ')}
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
-                <p className="text-sm text-muted-foreground">{step.description}</p>
-                <div className="bg-muted p-3 rounded">
-                  <p className="text-sm italic">"{step.communication}"</p>
-                </div>
-              </div>
-            ))}
+              </CardContent>
+            </Card>
           </div>
-        </CardContent>
-      </Card>
+        )}
+      </div>
 
       {/* Analytics Dialog */}
       <Dialog open={showAnalytics} onOpenChange={setShowAnalytics}>
@@ -253,77 +208,6 @@ export default function EditorMode({ steps }: EditorModeProps) {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
-  );
-}
-
-interface StepEditorProps {
-  step: CallStep;
-  onSave: (step: CallStep) => void;
-  onCancel: () => void;
-}
-
-function StepEditor({ step, onSave, onCancel }: StepEditorProps) {
-  const [editedStep, setEditedStep] = useState<CallStep>(step);
-
-  const handleSave = () => {
-    if (editedStep.title && editedStep.description && editedStep.communication) {
-      onSave(editedStep);
-    }
-  };
-
-  return (
-    <div className="space-y-4">
-      <div>
-        <Label htmlFor="title">Titel</Label>
-        <Input
-          id="title"
-          value={editedStep.title}
-          onChange={(e) => setEditedStep({ ...editedStep, title: e.target.value })}
-          placeholder="Schritt-Titel eingeben"
-        />
-      </div>
-      
-      <div>
-        <Label htmlFor="description">Beschreibung</Label>
-        <Textarea
-          id="description"
-          value={editedStep.description}
-          onChange={(e) => setEditedStep({ ...editedStep, description: e.target.value })}
-          placeholder="Was soll in diesem Schritt getan werden?"
-          rows={3}
-        />
-      </div>
-      
-      <div>
-        <Label htmlFor="communication">Kommunikationsvorlage</Label>
-        <Textarea
-          id="communication"
-          value={editedStep.communication}
-          onChange={(e) => setEditedStep({ ...editedStep, communication: e.target.value })}
-          placeholder="Was soll dem Kunden gesagt werden?"
-          rows={3}
-        />
-      </div>
-      
-      <div className="flex items-center space-x-2">
-        <Switch
-          id="required"
-          checked={editedStep.required}
-          onCheckedChange={(checked) => setEditedStep({ ...editedStep, required: checked })}
-        />
-        <Label htmlFor="required">Pflichtschritt</Label>
-      </div>
-      
-      <div className="flex justify-end space-x-3">
-        <Button variant="outline" onClick={onCancel}>
-          Abbrechen
-        </Button>
-        <Button onClick={handleSave} className="bg-gradient-primary">
-          <Save className="w-4 h-4 mr-2" />
-          Speichern
-        </Button>
-      </div>
     </div>
   );
 }
