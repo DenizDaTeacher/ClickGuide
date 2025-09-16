@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { CheckCircle, AlertCircle, Phone, User, Shield, FileText, Clock } from "lucide-react";
+import { CheckCircle, AlertCircle, Phone, User, Shield, FileText, Clock, GitBranch } from "lucide-react";
 import { CallStep } from "@/hooks/useCallSteps";
 
 interface AgentModeProps {
@@ -13,22 +13,49 @@ interface AgentModeProps {
 
 export default function AgentMode({ steps, onStepsUpdate }: AgentModeProps) {
   const [callActive, setCallActive] = useState(false);
-  const [currentStepIndex, setCurrentStepIndex] = useState(0);
+  const [currentStep, setCurrentStep] = useState<CallStep | null>(null);
+  const [stepHistory, setStepHistory] = useState<CallStep[]>([]);
   const [authenticationFailed, setAuthenticationFailed] = useState(false);
 
-  const completedSteps = steps.filter(step => step.completed).length;
+  const completedSteps = stepHistory.length;
   const totalSteps = steps.length;
   const requiredSteps = steps.filter(step => step.required);
-  const completedRequiredSteps = requiredSteps.filter(step => step.completed).length;
+  const completedRequiredSteps = stepHistory.filter(step => step.required).length;
 
-  const handleStepComplete = (stepId: string) => {
+  // Find start step or use first step
+  const getStartStep = () => {
+    return steps.find(step => step.isStartStep) || steps[0];
+  };
+
+  const handleStepComplete = (nextStepId?: string) => {
+    if (!currentStep) return;
+    
     const updatedSteps = steps.map(step => 
-      step.id === stepId ? { ...step, completed: true } : step
+      step.id === currentStep.id ? { ...step, completed: true } : step
     );
     onStepsUpdate(updatedSteps);
     
-    if (currentStepIndex < steps.length - 1) {
-      setCurrentStepIndex(currentStepIndex + 1);
+    // Add current step to history
+    setStepHistory(prev => [...prev, currentStep]);
+    
+    // Move to next step
+    if (nextStepId) {
+      const nextStep = steps.find(step => step.id === nextStepId);
+      setCurrentStep(nextStep || null);
+    } else {
+      // If no specific next step, check for default next step or end
+      const nextStep = steps.find(step => 
+        currentStep.nextStepConditions.length === 0 && 
+        steps.indexOf(step) === steps.indexOf(currentStep) + 1
+      );
+      setCurrentStep(nextStep || null);
+    }
+  };
+
+  const handleBranchChoice = (nextStepId: string) => {
+    const nextStep = steps.find(step => step.id === nextStepId);
+    if (nextStep) {
+      setCurrentStep(nextStep);
     }
   };
 
@@ -38,7 +65,9 @@ export default function AgentMode({ steps, onStepsUpdate }: AgentModeProps) {
 
   const startCall = () => {
     setCallActive(true);
-    setCurrentStepIndex(0);
+    const startStep = getStartStep();
+    setCurrentStep(startStep);
+    setStepHistory([]);
     const resetSteps = steps.map(step => ({ ...step, completed: false }));
     onStepsUpdate(resetSteps);
     setAuthenticationFailed(false);
@@ -46,7 +75,8 @@ export default function AgentMode({ steps, onStepsUpdate }: AgentModeProps) {
 
   const endCall = () => {
     setCallActive(false);
-    setCurrentStepIndex(0);
+    setCurrentStep(null);
+    setStepHistory([]);
     const resetSteps = steps.map(step => ({ ...step, completed: false }));
     onStepsUpdate(resetSteps);
     setAuthenticationFailed(false);
@@ -79,13 +109,13 @@ export default function AgentMode({ steps, onStepsUpdate }: AgentModeProps) {
         <div className="bg-gradient-card p-4 rounded-lg shadow-card">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm text-muted-foreground">Fortschritt</span>
-            <span className="text-sm font-medium">{completedSteps}/{totalSteps} Schritte abgeschlossen</span>
+            <span className="text-sm font-medium">{completedSteps} Schritte durchlaufen</span>
           </div>
-          <Progress value={(completedSteps / totalSteps) * 100} className="h-2" />
+          <Progress value={completedSteps > 0 ? (completedSteps / (completedSteps + 1)) * 100 : 0} className="h-2" />
         </div>
       )}
 
-      {callActive && (
+      {callActive && currentStep && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Current Step */}
           <div className="lg:col-span-2">
@@ -93,11 +123,16 @@ export default function AgentMode({ steps, onStepsUpdate }: AgentModeProps) {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-xl">
-                    Aktueller Schritt: {steps[currentStepIndex]?.title}
+                    {currentStep.title}
                   </CardTitle>
-                  <Badge variant={steps[currentStepIndex]?.required ? "destructive" : "secondary"}>
-                    {steps[currentStepIndex]?.required ? "Pflicht" : "Optional"}
-                  </Badge>
+                  <div className="flex gap-2">
+                    {currentStep.required && (
+                      <Badge variant="destructive">Pflicht</Badge>
+                    )}
+                    {currentStep.stepType !== 'normal' && (
+                      <Badge variant="outline">{currentStep.stepType}</Badge>
+                    )}
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -106,7 +141,7 @@ export default function AgentMode({ steps, onStepsUpdate }: AgentModeProps) {
                     <User className="w-4 h-4 mr-2" />
                     Was zu tun ist:
                   </h3>
-                  <p className="text-muted-foreground">{steps[currentStepIndex]?.description}</p>
+                  <p className="text-muted-foreground">{currentStep.description}</p>
                 </div>
                 
                 <div className="bg-gradient-card p-4 rounded-lg">
@@ -114,28 +149,55 @@ export default function AgentMode({ steps, onStepsUpdate }: AgentModeProps) {
                     <FileText className="w-4 h-4 mr-2" />
                     Kommunikationsvorlage:
                   </h3>
-                  <p className="italic text-foreground">{steps[currentStepIndex]?.communication}</p>
+                  <p className="italic text-foreground">{currentStep.communication}</p>
                 </div>
 
-                <div className="flex space-x-3">
-                  <Button 
-                    onClick={() => handleStepComplete(steps[currentStepIndex]?.id)}
-                    className="bg-gradient-primary"
-                  >
-                    <CheckCircle className="w-4 h-4 mr-2" />
-                    Schritt abgeschlossen
-                  </Button>
-                  
-                  {(steps[currentStepIndex]?.id === "identification" || steps[currentStepIndex]?.id === "verification") && (
+                {/* Branch Options */}
+                {currentStep.nextStepConditions.length > 0 ? (
+                  <div className="space-y-3">
+                    <h3 className="font-semibold flex items-center">
+                      <GitBranch className="w-4 h-4 mr-2" />
+                      Wählen Sie den nächsten Schritt:
+                    </h3>
+                    <div className="grid gap-2">
+                      {currentStep.nextStepConditions.map((condition, index) => (
+                        <Button
+                          key={index}
+                          onClick={() => handleBranchChoice(condition.nextStepId)}
+                          variant="outline"
+                          className="justify-start h-auto p-4"
+                        >
+                          <div className="text-left">
+                            <div className="font-medium">{condition.label}</div>
+                            {condition.condition && (
+                              <div className="text-sm text-muted-foreground">{condition.condition}</div>
+                            )}
+                          </div>
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex space-x-3">
                     <Button 
-                      variant="destructive"
-                      onClick={handleAuthenticationFailure}
+                      onClick={() => handleStepComplete()}
+                      className="bg-gradient-primary"
                     >
-                      <AlertCircle className="w-4 h-4 mr-2" />
-                      Authentifizierung fehlgeschlagen
+                      <CheckCircle className="w-4 h-4 mr-2" />
+                      Schritt abgeschlossen
                     </Button>
-                  )}
-                </div>
+                    
+                    {currentStep.stepType === 'decision' && (
+                      <Button 
+                        variant="destructive"
+                        onClick={handleAuthenticationFailure}
+                      >
+                        <AlertCircle className="w-4 h-4 mr-2" />
+                        Problem aufgetreten
+                      </Button>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -182,50 +244,58 @@ export default function AgentMode({ steps, onStepsUpdate }: AgentModeProps) {
               </CardContent>
             </Card>
 
-            {/* Steps Checklist */}
+            {/* Step History */}
             <Card className="shadow-card">
               <CardHeader>
                 <CardTitle className="text-lg flex items-center">
                   <Clock className="w-5 h-5 mr-2" />
-                  Schritte-Checkliste
+                  Durchlaufene Schritte
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {steps.map((step, index) => (
-                    <div 
-                      key={step.id}
-                      className={`flex items-center space-x-3 p-2 rounded-lg transition-all ${
-                        index === currentStepIndex ? 'bg-primary/10 border border-primary/20' : ''
-                      }`}
-                    >
-                      <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
-                        step.completed 
-                          ? 'bg-success text-success-foreground' 
-                          : index === currentStepIndex
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-muted text-muted-foreground'
-                      }`}>
-                        {step.completed ? (
+                  {stepHistory.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">Noch keine Schritte abgeschlossen</p>
+                  ) : (
+                    stepHistory.map((step, index) => (
+                      <div 
+                        key={`${step.id}-${index}`}
+                        className="flex items-center space-x-3 p-2 rounded-lg bg-success/5 border border-success/20"
+                      >
+                        <div className="w-6 h-6 rounded-full flex items-center justify-center bg-success text-success-foreground">
                           <CheckCircle className="w-4 h-4" />
-                        ) : (
-                          <span className="text-xs font-bold">{index + 1}</span>
-                        )}
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-success">
+                            {step.title}
+                          </p>
+                          {step.required && (
+                            <Badge variant="outline" className="text-xs mt-1">
+                              Pflicht
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                  
+                  {currentStep && (
+                    <div className="flex items-center space-x-3 p-2 rounded-lg bg-primary/10 border border-primary/20">
+                      <div className="w-6 h-6 rounded-full flex items-center justify-center bg-primary text-primary-foreground">
+                        <span className="text-xs font-bold">▶</span>
                       </div>
                       <div className="flex-1">
-                        <p className={`text-sm font-medium ${
-                          step.completed ? 'text-success' : 'text-foreground'
-                        }`}>
-                          {step.title}
+                        <p className="text-sm font-medium text-primary">
+                          {currentStep.title} (Aktuell)
                         </p>
-                        {step.required && (
+                        {currentStep.required && (
                           <Badge variant="outline" className="text-xs mt-1">
                             Pflicht
                           </Badge>
                         )}
                       </div>
                     </div>
-                  ))}
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -239,11 +309,32 @@ export default function AgentMode({ steps, onStepsUpdate }: AgentModeProps) {
             <Phone className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
             <h2 className="text-2xl font-semibold mb-2">Bereit für den nächsten Anruf</h2>
             <p className="text-muted-foreground mb-6">
-              Klicken Sie auf "Gespräch starten" um den Klick-Leitfaden zu aktivieren
+              Klicken Sie auf "Gespräch starten" um den konfigurierten Workflow zu durchlaufen
             </p>
-            <Button onClick={startCall} size="lg" className="bg-gradient-primary">
-              <Phone className="w-5 h-5 mr-2" />
-              Gespräch starten
+            {steps.length === 0 ? (
+              <p className="text-sm text-muted-foreground mb-6">
+                Keine Schritte konfiguriert. Wechseln Sie zum Editor-Modus um Schritte zu erstellen.
+              </p>
+            ) : (
+              <Button onClick={startCall} size="lg" className="bg-gradient-primary">
+                <Phone className="w-5 h-5 mr-2" />
+                Gespräch starten
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {callActive && !currentStep && (
+        <Card className="shadow-elevated">
+          <CardContent className="p-12 text-center">
+            <CheckCircle className="w-16 h-16 text-success mx-auto mb-4" />
+            <h2 className="text-2xl font-semibold mb-2">Workflow abgeschlossen</h2>
+            <p className="text-muted-foreground mb-6">
+              Alle konfigurierten Schritte wurden durchlaufen
+            </p>
+            <Button onClick={endCall} size="lg" variant="outline">
+              Gespräch beenden
             </Button>
           </CardContent>
         </Card>

@@ -139,14 +139,14 @@ export function WorkflowEditor({ steps, onSaveStep, onDeleteStep }: WorkflowEdit
       {/* Toolbar */}
       <div className="flex items-center justify-between p-4 border-b">
         <div>
-          <h2 className="text-xl font-semibold">Workflow Designer</h2>
+          <h2 className="text-xl font-semibold">Workflow Editor</h2>
           <p className="text-sm text-muted-foreground">
-            Ziehen Sie Schritte um sie zu positionieren, klicken Sie um zu bearbeiten
+            Erstellen Sie Schritte und verbinden Sie diese mit Linien für verzweigte Workflows
           </p>
         </div>
         <Button onClick={handleAddStep} className="bg-gradient-primary">
           <Plus className="w-4 h-4 mr-2" />
-          Neuer Schritt
+          Schritt hinzufügen
         </Button>
       </div>
 
