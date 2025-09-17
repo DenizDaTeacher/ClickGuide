@@ -111,6 +111,7 @@ export function WorkflowStepEditor({ step, allSteps, onSave, onCancel }: Workflo
 
   return (
     <div className="space-y-6 max-w-4xl">
+      {/* Basic Information */}
       <Card>
         <CardHeader>
           <CardTitle>Schritt-Informationen</CardTitle>

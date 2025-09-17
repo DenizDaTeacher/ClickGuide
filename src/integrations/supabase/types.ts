@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       call_steps: {
         Row: {
+          category: string | null
           communication: string
           condition_label: string | null
           created_at: string
@@ -35,6 +36,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          category?: string | null
           communication: string
           condition_label?: string | null
           created_at?: string
@@ -54,6 +56,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          category?: string | null
           communication?: string
           condition_label?: string | null
           created_at?: string
