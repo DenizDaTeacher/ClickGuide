@@ -48,6 +48,11 @@ export default function CallDashboard() {
     }
   };
 
+  const handleSaveAndExecute = async () => {
+    // Switch to agent mode to execute the current workflow
+    setMode('agent');
+  };
+
   return (
     <div className="min-h-screen bg-background p-6">
       <div className="max-w-6xl mx-auto">
@@ -108,6 +113,7 @@ export default function CallDashboard() {
             onCreateWorkflow={createWorkflow}
             onDeleteWorkflow={deleteWorkflow}
             onReorderSteps={reorderSteps}
+            onSaveAndExecute={handleSaveAndExecute}
           />
         )}
 

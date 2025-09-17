@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, Edit, Trash2, FolderPlus, Trash, GripVertical } from "lucide-react";
+import { Plus, Edit, Trash2, FolderPlus, Trash, GripVertical, CheckCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -40,6 +40,7 @@ interface EditorModeProps {
   onCreateWorkflow: (name: string) => void;
   onDeleteWorkflow: (name: string) => void;
   onReorderSteps?: (steps: CallStep[]) => void;
+  onSaveAndExecute?: () => void;
 }
 
 interface SortableStepCardProps {
@@ -193,7 +194,8 @@ export default function EditorMode({
   onWorkflowChange,
   onCreateWorkflow,
   onDeleteWorkflow,
-  onReorderSteps
+  onReorderSteps,
+  onSaveAndExecute
 }: EditorModeProps) {
   const [editingStep, setEditingStep] = useState<CallStep | null>(null);
   const [isCreatingNew, setIsCreatingNew] = useState(false);
@@ -355,10 +357,18 @@ export default function EditorMode({
           )}
         </div>
         
-        <Button onClick={handleCreateNew} className="bg-gradient-primary">
-          <Plus className="w-4 h-4 mr-2" />
-          Neuer Schritt
-        </Button>
+        <div className="flex items-center space-x-2">
+          <Button onClick={handleCreateNew} className="bg-gradient-primary">
+            <Plus className="w-4 h-4 mr-2" />
+            Neuer Schritt
+          </Button>
+          {onSaveAndExecute && (
+            <Button onClick={onSaveAndExecute} variant="default" size="lg" className="bg-gradient-primary shadow-elevated">
+              <CheckCircle className="w-4 h-4 mr-2" />
+              Änderungen speichern & Schritte ausführen
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Drag & Drop List View */}
