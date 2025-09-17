@@ -198,7 +198,7 @@ export function WorkflowStepEditor({ step, allSteps, onSave, onCancel }: Workflo
   ];
 
   const statusColors = [
-    { name: 'Standard', value: '' },
+    { name: 'Standard', value: 'default' },
     { name: 'Blau', value: 'bg-blue-500' },
     { name: 'Grün', value: 'bg-green-500' },
     { name: 'Gelb', value: 'bg-yellow-500' },
@@ -419,24 +419,24 @@ export function WorkflowStepEditor({ step, allSteps, onSave, onCancel }: Workflo
             <div className="space-y-2">
               <Label>Hintergrundfarbe</Label>
               <Select
-                value={editedStep.statusBackgroundColor || ''}
-                onValueChange={(value) => setEditedStep({...editedStep, statusBackgroundColor: value})}
+                value={editedStep.statusBackgroundColor || 'default'}
+                onValueChange={(value) => setEditedStep({...editedStep, statusBackgroundColor: value === 'default' ? '' : value})}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Farbe auswählen" />
                 </SelectTrigger>
-                <SelectContent>
-                  {statusColors.map((color) => (
-                    <SelectItem key={color.value} value={color.value}>
-                      <div className="flex items-center gap-2">
-                        <div 
-                          className={`w-4 h-4 rounded ${color.value || 'bg-muted'}`}
-                        />
-                        {color.name}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
+                 <SelectContent>
+                   {statusColors.map((color) => (
+                     <SelectItem key={color.value} value={color.value}>
+                       <div className="flex items-center gap-2">
+                         <div 
+                           className={`w-4 h-4 rounded ${color.value === 'default' ? 'bg-muted' : color.value}`}
+                         />
+                         {color.name}
+                       </div>
+                     </SelectItem>
+                   ))}
+                 </SelectContent>
               </Select>
             </div>
           </div>
@@ -444,7 +444,7 @@ export function WorkflowStepEditor({ step, allSteps, onSave, onCancel }: Workflo
           {/* Status Preview */}
           <div className="bg-muted p-3 rounded-md">
             <Label className="text-sm font-medium">Vorschau:</Label>
-            <div className={`mt-2 p-2 rounded border ${editedStep.statusBackgroundColor || 'bg-background'}`}>
+            <div className={`mt-2 p-2 rounded border ${editedStep.statusBackgroundColor === 'default' || !editedStep.statusBackgroundColor ? 'bg-background' : editedStep.statusBackgroundColor}`}>
               <div className="flex items-center gap-2">
                 {editedStep.statusIcon && <span>{editedStep.statusIcon}</span>}
                 <span className="font-medium">{editedStep.title || "Schritt Titel"}</span>
