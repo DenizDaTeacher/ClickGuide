@@ -134,9 +134,9 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
         <div className="bg-gradient-card p-4 rounded-lg shadow-card">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm text-muted-foreground">Fortschritt</span>
-            <span className="text-sm font-medium">{completedSteps} Schritte durchlaufen</span>
+            <span className="text-sm font-medium">{completedSteps} von {totalSteps} Schritten</span>
           </div>
-          <Progress value={completedSteps > 0 ? (completedSteps / (completedSteps + 1)) * 100 : 0} className="h-2" />
+          <Progress value={totalSteps > 0 ? (completedSteps / totalSteps) * 100 : 0} className="h-2" />
         </div>
       )}
 
@@ -269,57 +269,81 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
               </CardContent>
             </Card>
 
-            {/* Step History */}
+            {/* Steps Checklist */}
             <Card className="shadow-card">
               <CardHeader>
                 <CardTitle className="text-lg flex items-center">
                   <Clock className="w-5 h-5 mr-2" />
-                  Durchlaufene Schritte
+                  Schritte Checkliste
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {stepHistory.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">Noch keine Schritte abgeschlossen</p>
+                  {steps.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">Keine Schritte konfiguriert</p>
                   ) : (
-                    stepHistory.map((step, index) => (
-                      <div 
-                        key={`${step.id}-${index}`}
-                        className="flex items-center space-x-3 p-2 rounded-lg bg-success/5 border border-success/20"
-                      >
-                        <div className="w-6 h-6 rounded-full flex items-center justify-center bg-success text-success-foreground">
-                          <CheckCircle className="w-4 h-4" />
+                    steps.map((step, index) => {
+                      const isCompleted = stepHistory.some(completedStep => completedStep.id === step.id);
+                      const isCurrent = currentStep && currentStep.id === step.id;
+                      const isPending = !isCompleted && !isCurrent;
+                      
+                      return (
+                        <div 
+                          key={step.id}
+                          className={`flex items-center space-x-3 p-2 rounded-lg border ${
+                            isCompleted 
+                              ? 'bg-success/5 border-success/20' 
+                              : isCurrent 
+                                ? 'bg-primary/10 border-primary/20' 
+                                : 'bg-muted/30 border-muted/40'
+                          }`}
+                        >
+                          <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                            isCompleted 
+                              ? 'bg-success text-success-foreground' 
+                              : isCurrent 
+                                ? 'bg-primary text-primary-foreground' 
+                                : 'bg-muted text-muted-foreground'
+                          }`}>
+                            {isCompleted ? (
+                              <CheckCircle className="w-4 h-4" />
+                            ) : isCurrent ? (
+                              <span>▶</span>
+                            ) : (
+                              <span>{index + 1}</span>
+                            )}
+                          </div>
+                          <div className="flex-1">
+                            <p className={`text-sm font-medium ${
+                              isCompleted 
+                                ? 'text-success' 
+                                : isCurrent 
+                                  ? 'text-primary' 
+                                  : 'text-muted-foreground'
+                            }`}>
+                              {step.title}
+                            </p>
+                            <div className="flex items-center space-x-2 mt-1">
+                              {step.required && (
+                                <Badge variant="outline" className="text-xs">
+                                  Pflicht
+                                </Badge>
+                              )}
+                              {isCompleted && (
+                                <Badge variant="outline" className="text-xs bg-success/10 text-success border-success/20">
+                                  Abgeschlossen
+                                </Badge>
+                              )}
+                              {isCurrent && (
+                                <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/20">
+                                  Aktuell
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
                         </div>
-                        <div className="flex-1">
-                          <p className="text-sm font-medium text-success">
-                            {step.title}
-                          </p>
-                          {step.required && (
-                            <Badge variant="outline" className="text-xs mt-1">
-                              Pflicht
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                    ))
-                  )}
-                  
-                  {currentStep && (
-                    <div className="flex items-center space-x-3 p-2 rounded-lg bg-primary/10 border border-primary/20">
-                      <div className="w-6 h-6 rounded-full flex items-center justify-center bg-primary text-primary-foreground">
-                        <span className="text-xs font-bold">▶</span>
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-primary">
-                          {currentStep.title} (Aktuell)
-                        </p>
-                        {currentStep.required && (
-                          <Badge variant="outline" className="text-xs mt-1">
-                            Pflicht
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
+                      );
+                    })
                   )}
                 </div>
               </CardContent>
