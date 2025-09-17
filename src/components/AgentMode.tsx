@@ -39,7 +39,6 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
     }
     
     console.log('✅ Completing step:', currentStep.title, 'ID:', currentStep.id);
-    console.log('🔄 Available steps for navigation:', steps.map(s => ({id: s.id, title: s.title})));
     
     const updatedSteps = steps.map(step => 
       step.id === currentStep.id ? { ...step, completed: true } : step
@@ -56,9 +55,9 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
       console.log('🎯 Found next step:', nextStep);
       setCurrentStep(nextStep || null);
     } else {
-      // If no specific next step, find next step in sequence
-      const currentIndex = steps.indexOf(currentStep);
-      console.log('📍 Current step index:', currentIndex, 'of', steps.length, 'steps');
+      // Fix: Use step ID to find current step index instead of object reference
+      const currentIndex = steps.findIndex(step => step.id === currentStep.id);
+      console.log('📍 Current step index (by ID):', currentIndex, 'of', steps.length, 'steps');
       const nextStep = currentIndex < steps.length - 1 ? steps[currentIndex + 1] : null;
       console.log('➡️ Next step in sequence:', nextStep);
       setCurrentStep(nextStep);
