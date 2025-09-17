@@ -95,11 +95,14 @@ export default function CallDashboard() {
             <div className="text-muted-foreground">Lade Schritte...</div>
           </div>
         ) : mode === 'agent' ? (
-          <AgentMode 
-            steps={steps} 
-            onStepsUpdate={updateStepsLocally}
-            currentWorkflow={currentWorkflow}
-          />
+          <>
+            {console.log('🎯 Rendering AgentMode with steps:', steps.length, 'workflow:', currentWorkflow)}
+            <AgentMode 
+              steps={steps} 
+              onStepsUpdate={updateStepsLocally}
+              currentWorkflow={currentWorkflow}
+            />
+          </>
         ) : (
           <EditorMode
             steps={steps}

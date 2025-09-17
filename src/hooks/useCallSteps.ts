@@ -109,6 +109,12 @@ export function useCallSteps() {
         const mainSteps = formattedSteps.filter(step => !step.parentStepId);
         const subSteps = formattedSteps.filter(step => step.parentStepId);
         
+        console.log('📊 Loading steps for workflow:', targetWorkflow);
+        console.log('📊 Total formatted steps:', formattedSteps.length);
+        console.log('📊 Main steps:', mainSteps.length);
+        console.log('📊 Sub steps:', subSteps.length);
+        console.log('📊 Main steps data:', mainSteps.map(s => ({id: s.id, title: s.title, sortOrder: s.sortOrder})));
+        
         mainSteps.forEach(mainStep => {
           mainStep.subSteps = subSteps.filter(sub => sub.parentStepId === mainStep.id);
         });

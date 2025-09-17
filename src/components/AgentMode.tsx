@@ -25,11 +25,21 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
 
   // Find start step or use first step
   const getStartStep = () => {
-    return steps.find(step => step.isStartStep) || steps[0];
+    console.log('🔍 Getting start step from steps:', steps);
+    console.log('🔍 Steps count:', steps.length);
+    const startStep = steps.find(step => step.isStartStep) || steps[0];
+    console.log('🔍 Selected start step:', startStep);
+    return startStep;
   };
 
   const handleStepComplete = (nextStepId?: string) => {
-    if (!currentStep) return;
+    if (!currentStep) {
+      console.log('❌ No current step to complete');
+      return;
+    }
+    
+    console.log('✅ Completing step:', currentStep.title, 'ID:', currentStep.id);
+    console.log('🔄 Available steps for navigation:', steps.map(s => ({id: s.id, title: s.title})));
     
     const updatedSteps = steps.map(step => 
       step.id === currentStep.id ? { ...step, completed: true } : step
@@ -41,12 +51,16 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
     
     // Move to next step
     if (nextStepId) {
+      console.log('🎯 Moving to specific next step:', nextStepId);
       const nextStep = steps.find(step => step.id === nextStepId);
+      console.log('🎯 Found next step:', nextStep);
       setCurrentStep(nextStep || null);
     } else {
       // If no specific next step, find next step in sequence
       const currentIndex = steps.indexOf(currentStep);
+      console.log('📍 Current step index:', currentIndex, 'of', steps.length, 'steps');
       const nextStep = currentIndex < steps.length - 1 ? steps[currentIndex + 1] : null;
+      console.log('➡️ Next step in sequence:', nextStep);
       setCurrentStep(nextStep);
     }
   };
@@ -73,8 +87,11 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
   };
 
   const startCall = () => {
+    console.log('🚀 Starting call with steps:', steps);
+    console.log('🚀 Current workflow:', currentWorkflow);
     setCallActive(true);
     const startStep = getStartStep();
+    console.log('🚀 Setting current step to:', startStep);
     setCurrentStep(startStep);
     setStepHistory([]);
     const resetSteps = steps.map(step => ({ ...step, completed: false }));
