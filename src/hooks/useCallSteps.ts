@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import type { Json } from '@/integrations/supabase/types';
 
 export interface ActionButton {
   id: string;
@@ -9,6 +10,7 @@ export interface ActionButton {
   actionType: 'complete' | 'fail' | 'info' | 'custom';
   statusMessage?: string;
   icon?: string;
+  enabled?: boolean;
 }
 
 export interface CallStep {
@@ -216,7 +218,7 @@ export function useCallSteps() {
         step_type: step.stepType,
         condition_label: step.conditionLabel,
         next_step_conditions: step.nextStepConditions,
-        action_buttons: step.actionButtons || [],
+        action_buttons: JSON.parse(JSON.stringify(step.actionButtons)) as Json || [],
         position_x: step.positionX,
         position_y: step.positionY,
         is_start_step: step.isStartStep,

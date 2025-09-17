@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       call_steps: {
         Row: {
+          action_buttons: Json | null
           category: string | null
           communication: string
           condition_label: string | null
@@ -37,6 +38,7 @@ export type Database = {
           workflow_name: string
         }
         Insert: {
+          action_buttons?: Json | null
           category?: string | null
           communication: string
           condition_label?: string | null
@@ -58,6 +60,7 @@ export type Database = {
           workflow_name?: string
         }
         Update: {
+          action_buttons?: Json | null
           category?: string | null
           communication?: string
           condition_label?: string | null

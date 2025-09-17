@@ -239,25 +239,21 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
                       Schritt abgeschlossen
                     </Button>
                     
-                    {/* Custom action buttons */}
-                    {currentStep.actionButtons && currentStep.actionButtons.map((button) => {
-                      const IconComponent = button.icon ? 
-                        (button.icon === 'AlertCircle' ? AlertCircle :
-                         button.icon === 'Info' ? Info :
-                         button.icon === 'CheckCircle' ? CheckCircle :
-                         button.icon === 'X' ? X : AlertCircle) : AlertCircle;
-                      
-                      return (
-                        <Button
-                          key={button.id}
-                          variant={button.variant}
-                          onClick={() => handleActionButton(button)}
-                        >
-                          <IconComponent className="w-4 h-4 mr-2" />
-                          {button.label}
-                        </Button>
-                      );
-                    })}
+                    {/* Custom action buttons - only show enabled ones */}
+                    {currentStep.actionButtons && currentStep.actionButtons
+                      .filter(button => button.enabled !== false)
+                      .map((button) => {
+                        return (
+                          <Button
+                            key={button.id}
+                            variant={button.variant}
+                            onClick={() => handleActionButton(button)}
+                          >
+                            {button.icon && <span className="mr-2">{button.icon}</span>}
+                            {button.label}
+                          </Button>
+                        );
+                      })}
                     
                     {/* Legacy decision button for backward compatibility */}
                     {currentStep.stepType === 'decision' && (!currentStep.actionButtons || currentStep.actionButtons.length === 0) && (

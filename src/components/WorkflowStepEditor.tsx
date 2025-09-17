@@ -67,13 +67,28 @@ export function WorkflowStepEditor({ step, allSteps, onSave, onCancel }: Workflo
       variant: "outline",
       actionType: "info",
       statusMessage: "",
-      icon: ""
+      icon: "",
+      enabled: true
     };
     setEditedStep({
       ...editedStep,
       actionButtons: [...(editedStep.actionButtons || []), newButton]
     });
   };
+
+  const toggleActionButton = (index: number) => {
+    const buttons = [...(editedStep.actionButtons || [])];
+    buttons[index] = { ...buttons[index], enabled: !buttons[index].enabled };
+    setEditedStep({
+      ...editedStep,
+      actionButtons: buttons
+    });
+  };
+
+  const commonEmojis = [
+    "⚠️", "❌", "✅", "ℹ️", "🔔", "📞", "📝", "💬", "🔄", "⭐",
+    "🚨", "✋", "👍", "👎", "📋", "💡", "🔧", "📊", "🎯", "⏰"
+  ];
 
   const updateActionButton = (index: number, field: keyof ActionButton, value: any) => {
     const buttons = [...(editedStep.actionButtons || [])];
@@ -449,10 +464,16 @@ export function WorkflowStepEditor({ step, allSteps, onSave, onCancel }: Workflo
               <Card key={button.id} className="border-muted">
                 <CardContent className="p-4 space-y-3">
                   <div className="flex items-center justify-between">
-                    <h4 className="font-medium flex items-center">
-                      <MousePointer className="w-4 h-4 mr-2" />
-                      Button {index + 1}
-                    </h4>
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-medium flex items-center">
+                        <MousePointer className="w-4 h-4 mr-2" />
+                        Button {index + 1}
+                      </h4>
+                      <Switch
+                        checked={button.enabled !== false}
+                        onCheckedChange={() => toggleActionButton(index)}
+                      />
+                    </div>
                     <Button 
                       onClick={() => removeActionButton(index)} 
                       variant="destructive" 
@@ -460,6 +481,22 @@ export function WorkflowStepEditor({ step, allSteps, onSave, onCancel }: Workflo
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>
+                  </div>
+
+                  {/* Button Preview */}
+                  <div className="bg-muted p-3 rounded-md">
+                    <Label className="text-sm font-medium">Vorschau:</Label>
+                    <div className="mt-2">
+                      <Button 
+                        variant={button.variant}
+                        size="sm"
+                        className="pointer-events-none"
+                        disabled={button.enabled === false}
+                      >
+                        {button.icon && <span className="mr-2">{button.icon}</span>}
+                        {button.label || "Button Text"}
+                      </Button>
+                    </div>
                   </div>
                   
                   <div className="grid grid-cols-2 gap-4">
@@ -513,12 +550,29 @@ export function WorkflowStepEditor({ step, allSteps, onSave, onCancel }: Workflo
                       </Select>
                     </div>
                     <div className="space-y-2">
-                      <Label>Icon (optional)</Label>
-                      <Input
-                        value={button.icon || ''}
-                        onChange={(e) => updateActionButton(index, 'icon', e.target.value)}
-                        placeholder="z.B. AlertCircle, Info, CheckCircle"
-                      />
+                      <Label>Icon</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          value={button.icon || ''}
+                          onChange={(e) => updateActionButton(index, 'icon', e.target.value)}
+                          placeholder="Emoji auswählen..."
+                          className="flex-1"
+                        />
+                      </div>
+                      <div className="grid grid-cols-10 gap-1 mt-2">
+                        {commonEmojis.map((emoji) => (
+                          <Button
+                            key={emoji}
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0 text-base hover:bg-accent"
+                            onClick={() => updateActionButton(index, 'icon', emoji)}
+                          >
+                            {emoji}
+                          </Button>
+                        ))}
+                      </div>
                     </div>
                   </div>
                   
