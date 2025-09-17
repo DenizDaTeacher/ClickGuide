@@ -346,6 +346,48 @@ export function useCallSteps() {
     }
   };
 
+  // Reorder steps in database
+  const reorderSteps = async (reorderedSteps: CallStep[]) => {
+    try {
+      // Update all steps with new sort order in parallel
+      const updatePromises = reorderedSteps.map((step, index) => 
+        supabase
+          .from('call_steps')
+          .update({ sort_order: index + 1 })
+          .eq('step_id', step.id)
+      );
+
+      const results = await Promise.all(updatePromises);
+      
+      // Check if any updates failed
+      const hasError = results.some(result => result.error);
+      if (hasError) {
+        throw new Error('Failed to update step order');
+      }
+
+      toast({
+        title: "Reihenfolge aktualisiert",
+        description: "Die Schritte wurden erfolgreich neu sortiert.",
+      });
+
+      // Update local state
+      setSteps(reorderedSteps);
+      
+      return true;
+    } catch (error) {
+      console.error('Error reordering steps:', error);
+      toast({
+        title: "Fehler beim Sortieren",
+        description: "Die Reihenfolge konnte nicht gespeichert werden.",
+        variant: "destructive",
+      });
+      
+      // Reload steps to restore original order
+      await loadSteps();
+      return false;
+    }
+  };
+
   // Update steps locally (for agent mode)
   const updateStepsLocally = (newSteps: CallStep[]) => {
     setSteps(newSteps);
@@ -374,6 +416,7 @@ export function useCallSteps() {
     saveStep,
     deleteStep,
     updateStepsLocally,
+    reorderSteps,
     reloadSteps: loadSteps
   };
 }

@@ -9,9 +9,10 @@ import { CallStep } from "@/hooks/useCallSteps";
 interface AgentModeProps {
   steps: CallStep[];
   onStepsUpdate: (steps: CallStep[]) => void;
+  currentWorkflow: string;
 }
 
-export default function AgentMode({ steps, onStepsUpdate }: AgentModeProps) {
+export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: AgentModeProps) {
   const [callActive, setCallActive] = useState(false);
   const [currentStep, setCurrentStep] = useState<CallStep | null>(null);
   const [stepHistory, setStepHistory] = useState<CallStep[]>([]);
@@ -317,11 +318,11 @@ export default function AgentMode({ steps, onStepsUpdate }: AgentModeProps) {
             <Phone className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
             <h2 className="text-2xl font-semibold mb-2">Bereit für den nächsten Anruf</h2>
             <p className="text-muted-foreground mb-6">
-              Klicken Sie auf "Gespräch starten" um den konfigurierten Workflow zu durchlaufen
+              Klicken Sie auf "Gespräch starten" um den Workflow "{currentWorkflow}" zu durchlaufen
             </p>
             {steps.length === 0 ? (
               <p className="text-sm text-muted-foreground mb-6">
-                Keine Schritte konfiguriert. Wechseln Sie zum Editor-Modus um Schritte zu erstellen.
+                Keine Schritte in "{currentWorkflow}" konfiguriert. Wechseln Sie zum Editor-Modus um Schritte zu erstellen.
               </p>
             ) : (
               <Button onClick={startCall} size="lg" className="bg-gradient-primary">

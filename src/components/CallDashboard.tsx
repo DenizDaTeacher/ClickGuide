@@ -24,7 +24,8 @@ export default function CallDashboard() {
     deleteWorkflow,
     saveStep, 
     deleteStep, 
-    updateStepsLocally 
+    updateStepsLocally,
+    reorderSteps
   } = useCallSteps();
 
   const handleEditorAccess = () => {
@@ -89,7 +90,11 @@ export default function CallDashboard() {
             <div className="text-muted-foreground">Lade Schritte...</div>
           </div>
         ) : mode === 'agent' ? (
-          <AgentMode steps={steps} onStepsUpdate={updateStepsLocally} />
+          <AgentMode 
+            steps={steps} 
+            onStepsUpdate={updateStepsLocally}
+            currentWorkflow={currentWorkflow}
+          />
         ) : (
           <EditorMode
             steps={steps}
@@ -102,6 +107,7 @@ export default function CallDashboard() {
             onWorkflowChange={setCurrentWorkflow}
             onCreateWorkflow={createWorkflow}
             onDeleteWorkflow={deleteWorkflow}
+            onReorderSteps={reorderSteps}
           />
         )}
 

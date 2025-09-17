@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, Edit, Trash2, FolderPlus, Trash } from "lucide-react";
+import { Plus, Edit, Trash2, FolderPlus, Trash, GripVertical } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -8,6 +8,25 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { WorkflowStepEditor } from "./WorkflowStepEditor";
 import { CallStep } from "@/hooks/useCallSteps";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import {
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface EditorModeProps {
   steps: CallStep[];
@@ -20,6 +39,147 @@ interface EditorModeProps {
   onWorkflowChange: (workflow: string) => void;
   onCreateWorkflow: (name: string) => void;
   onDeleteWorkflow: (name: string) => void;
+  onReorderSteps?: (steps: CallStep[]) => void;
+}
+
+interface SortableStepCardProps {
+  step: CallStep;
+  index: number;
+  onEdit: (step: CallStep) => void;
+  onDelete: (stepId: string) => void;
+}
+
+function SortableStepCard({ step, index, onEdit, onDelete }: SortableStepCardProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: step.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <Card 
+      ref={setNodeRef} 
+      style={style} 
+      className={`shadow-card ${isDragging ? 'z-50' : ''}`}
+    >
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div
+              {...attributes}
+              {...listeners}
+              className="cursor-grab active:cursor-grabbing p-1 hover:bg-muted rounded"
+            >
+              <GripVertical className="w-4 h-4 text-muted-foreground" />
+            </div>
+            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+              <span className="text-sm font-medium text-primary">
+                {index + 1}
+              </span>
+            </div>
+            <div>
+              <CardTitle className="text-lg">{step.title}</CardTitle>
+              <div className="flex items-center space-x-2 mt-1">
+                {step.required && (
+                  <Badge variant="destructive" className="text-xs">
+                    Pflicht
+                  </Badge>
+                )}
+                {step.stepType !== 'normal' && (
+                  <Badge variant="outline" className="text-xs">
+                    {step.stepType}
+                  </Badge>
+                )}
+                {step.category && (
+                  <Badge variant="secondary" className="text-xs">
+                    {step.category}
+                  </Badge>
+                )}
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onEdit(step)}
+            >
+              <Edit className="w-4 h-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onDelete(step.id)}
+              className="text-destructive hover:text-destructive"
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <p className="text-muted-foreground text-sm mb-3">
+          {step.description}
+        </p>
+        <div className="bg-muted/50 p-3 rounded-lg">
+          <p className="text-sm italic">"{step.communication}"</p>
+        </div>
+        
+        {step.subSteps && step.subSteps.length > 0 && (
+          <div className="mt-4">
+            <h4 className="text-sm font-medium mb-2">Unterschritte:</h4>
+            <div className="space-y-2">
+              {step.subSteps.map((subStep, subIndex) => (
+                <div 
+                  key={subStep.id}
+                  className="flex items-center justify-between p-2 bg-muted/30 rounded border-l-2 border-primary/30"
+                >
+                  <div className="flex items-center space-x-2">
+                    <span className="text-xs font-medium text-muted-foreground">
+                      {index + 1}.{subIndex + 1}
+                    </span>
+                    <span className="text-sm">{subStep.title}</span>
+                    {subStep.category && (
+                      <Badge variant="outline" className="text-xs">
+                        {subStep.category}
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="flex items-center space-x-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onEdit(subStep)}
+                      className="h-6 w-6 p-0"
+                    >
+                      <Edit className="w-3 h-3" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onDelete(subStep.id)}
+                      className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
 }
 
 export default function EditorMode({ 
@@ -32,12 +192,22 @@ export default function EditorMode({
   workflows,
   onWorkflowChange,
   onCreateWorkflow,
-  onDeleteWorkflow
+  onDeleteWorkflow,
+  onReorderSteps
 }: EditorModeProps) {
   const [editingStep, setEditingStep] = useState<CallStep | null>(null);
   const [isCreatingNew, setIsCreatingNew] = useState(false);
   const [newWorkflowName, setNewWorkflowName] = useState("");
   const [showNewWorkflowDialog, setShowNewWorkflowDialog] = useState(false);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const mainSteps = steps.filter(step => step.stepType !== 'sub_step');
 
   const handleCreateNew = () => {
     setIsCreatingNew(true);
@@ -80,6 +250,33 @@ export default function EditorMode({
       onCreateWorkflow(newWorkflowName.trim());
       setNewWorkflowName("");
       setShowNewWorkflowDialog(false);
+    }
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      const oldIndex = mainSteps.findIndex(step => step.id === active.id);
+      const newIndex = mainSteps.findIndex(step => step.id === over.id);
+      
+      const reorderedSteps = arrayMove(mainSteps, oldIndex, newIndex);
+      
+      // Update all steps with new sort order
+      const updatedSteps = reorderedSteps.map((step, index) => ({
+        ...step,
+        sortOrder: index + 1
+      }));
+
+      // Update steps in database
+      if (onReorderSteps) {
+        onReorderSteps(updatedSteps);
+      } else {
+        // Fallback: save each step individually with new sort order
+        updatedSteps.forEach(step => {
+          onSaveStep(step, false);
+        });
+      }
     }
   };
 
@@ -164,9 +361,9 @@ export default function EditorMode({
         </Button>
       </div>
 
-      {/* List View */}
-      <div className="grid gap-4">
-        {steps.length === 0 ? (
+      {/* Drag & Drop List View */}
+      <div className="space-y-2">
+        {mainSteps.length === 0 ? (
           <Card>
             <CardContent className="p-12 text-center">
               <p className="text-muted-foreground mb-4">
@@ -179,118 +376,28 @@ export default function EditorMode({
             </CardContent>
           </Card>
         ) : (
-          steps
-            .filter(step => step.stepType !== 'sub_step')
-            .sort((a, b) => {
-              // Sort by sort_order if available, otherwise by creation order
-              const aOrder = steps.indexOf(a) + 1;
-              const bOrder = steps.indexOf(b) + 1;
-              return aOrder - bOrder;
-            })
-            .map((step, index) => (
-              <Card key={step.id} className="shadow-card">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                        <span className="text-sm font-medium text-primary">
-                          {index + 1}
-                        </span>
-                      </div>
-                      <div>
-                        <CardTitle className="text-lg">{step.title}</CardTitle>
-                        <div className="flex items-center space-x-2 mt-1">
-                          {step.required && (
-                            <Badge variant="destructive" className="text-xs">
-                              Pflicht
-                            </Badge>
-                          )}
-                          {step.stepType !== 'normal' && (
-                            <Badge variant="outline" className="text-xs">
-                              {step.stepType}
-                            </Badge>
-                          )}
-                          {step.category && (
-                            <Badge variant="secondary" className="text-xs">
-                              {step.category}
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleEdit(step)}
-                      >
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => onDeleteStep(step.id)}
-                        className="text-destructive hover:text-destructive"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground text-sm mb-3">
-                    {step.description}
-                  </p>
-                  <div className="bg-muted/50 p-3 rounded-lg">
-                    <p className="text-sm italic">"{step.communication}"</p>
-                  </div>
-                  
-                  {step.subSteps && step.subSteps.length > 0 && (
-                    <div className="mt-4">
-                      <h4 className="text-sm font-medium mb-2">Unterschritte:</h4>
-                      <div className="space-y-2">
-                        {step.subSteps.map((subStep, subIndex) => (
-                          <div 
-                            key={subStep.id}
-                            className="flex items-center justify-between p-2 bg-muted/30 rounded border-l-2 border-primary/30"
-                          >
-                            <div className="flex items-center space-x-2">
-                              <span className="text-xs font-medium text-muted-foreground">
-                                {index + 1}.{subIndex + 1}
-                              </span>
-                              <span className="text-sm">{subStep.title}</span>
-                              {subStep.category && (
-                                <Badge variant="outline" className="text-xs">
-                                  {subStep.category}
-                                </Badge>
-                              )}
-                            </div>
-                            <div className="flex items-center space-x-1">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleEdit(subStep)}
-                                className="h-6 w-6 p-0"
-                              >
-                                <Edit className="w-3 h-3" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => onDeleteStep(subStep.id)}
-                                className="h-6 w-6 p-0 text-destructive hover:text-destructive"
-                              >
-                                <Trash2 className="w-3 h-3" />
-                              </Button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            ))
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={mainSteps.map(step => step.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              <div className="space-y-4">
+                {mainSteps.map((step, index) => (
+                  <SortableStepCard
+                    key={step.id}
+                    step={step}
+                    index={index}
+                    onEdit={handleEdit}
+                    onDelete={onDeleteStep}
+                  />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
         )}
       </div>
     </div>
