@@ -43,16 +43,24 @@ export default function AgentMode({ steps, onStepsUpdate }: AgentModeProps) {
       const nextStep = steps.find(step => step.id === nextStepId);
       setCurrentStep(nextStep || null);
     } else {
-      // If no specific next step, check for default next step or end
-      const nextStep = steps.find(step => 
-        currentStep.nextStepConditions.length === 0 && 
-        steps.indexOf(step) === steps.indexOf(currentStep) + 1
-      );
-      setCurrentStep(nextStep || null);
+      // If no specific next step, find next step in sequence
+      const currentIndex = steps.indexOf(currentStep);
+      const nextStep = currentIndex < steps.length - 1 ? steps[currentIndex + 1] : null;
+      setCurrentStep(nextStep);
     }
   };
 
   const handleBranchChoice = (nextStepId: string) => {
+    if (!currentStep) return;
+    
+    // Mark current step as completed and add to history
+    const updatedSteps = steps.map(step => 
+      step.id === currentStep.id ? { ...step, completed: true } : step
+    );
+    onStepsUpdate(updatedSteps);
+    setStepHistory(prev => [...prev, currentStep]);
+    
+    // Move to selected next step
     const nextStep = steps.find(step => step.id === nextStepId);
     if (nextStep) {
       setCurrentStep(nextStep);
