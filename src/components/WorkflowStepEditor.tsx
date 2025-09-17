@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CallStep, NextStepCondition, ActionButton } from "@/hooks/useCallSteps";
-import { Plus, Trash2, Settings, MousePointer } from "lucide-react";
+import { CallStep, NextStepCondition, ActionButton, useCallSteps } from "@/hooks/useCallSteps";
+import { Plus, Trash2, Settings, MousePointer, Save } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface WorkflowStepEditorProps {
   step: CallStep;
@@ -21,8 +22,23 @@ export function WorkflowStepEditor({ step, allSteps, onSave, onCancel }: Workflo
     ...step,
     subSteps: step.subSteps || [],
     category: step.category || "",
-    actionButtons: step.actionButtons || []
+    actionButtons: step.actionButtons || [],
+    statusBackgroundColor: step.statusBackgroundColor || "",
+    statusIcon: step.statusIcon || ""
   });
+  
+  const [selectedTemplate, setSelectedTemplate] = useState<string>('');
+  const [newTemplateName, setNewTemplateName] = useState<string>('');
+  const [saveAsTemplate, setSaveAsTemplate] = useState<boolean>(false);
+  const [currentButtonIndex, setCurrentButtonIndex] = useState<number>(-1);
+
+  const { 
+    buttonTemplates, 
+    saveButtonTemplate, 
+    deleteButtonTemplate 
+  } = useCallSteps();
+  
+  const { toast } = useToast();
 
   const handleSave = () => {
     if (editedStep.title && editedStep.description && editedStep.communication) {
@@ -60,15 +76,39 @@ export function WorkflowStepEditor({ step, allSteps, onSave, onCancel }: Workflo
     });
   };
 
+  // Add new action button
   const addActionButton = () => {
+    if (selectedTemplate && buttonTemplates.length > 0) {
+      // Create button from template
+      const template = buttonTemplates.find(t => t.id === selectedTemplate);
+      if (template) {
+        const newButton: ActionButton = {
+          id: crypto.randomUUID(),
+          label: template.label,
+          variant: template.variant,
+          actionType: template.actionType,
+          icon: template.icon,
+          statusMessage: template.statusMessage,
+          enabled: true,
+          templateName: template.name
+        };
+        setEditedStep({
+          ...editedStep,
+          actionButtons: [...(editedStep.actionButtons || []), newButton]
+        });
+        setSelectedTemplate('');
+        return;
+      }
+    }
+    
+    // Create new custom button
     const newButton: ActionButton = {
-      id: `action-${Date.now()}`,
-      label: "Neuer Button",
-      variant: "outline",
-      actionType: "info",
-      statusMessage: "",
-      icon: "",
-      enabled: true
+      id: crypto.randomUUID(),
+      label: `Button ${(editedStep.actionButtons?.length || 0) + 1}`,
+      variant: 'default',
+      actionType: 'custom',
+      enabled: true,
+      templateName: `Button ${(editedStep.actionButtons?.length || 0) + 1}`
     };
     setEditedStep({
       ...editedStep,
@@ -84,11 +124,6 @@ export function WorkflowStepEditor({ step, allSteps, onSave, onCancel }: Workflo
       actionButtons: buttons
     });
   };
-
-  const commonEmojis = [
-    "⚠️", "❌", "✅", "ℹ️", "🔔", "📞", "📝", "💬", "🔄", "⭐",
-    "🚨", "✋", "👍", "👎", "📋", "💡", "🔧", "📊", "🎯", "⏰"
-  ];
 
   const updateActionButton = (index: number, field: keyof ActionButton, value: any) => {
     const buttons = [...(editedStep.actionButtons || [])];
@@ -107,6 +142,71 @@ export function WorkflowStepEditor({ step, allSteps, onSave, onCancel }: Workflo
       actionButtons: buttons
     });
   };
+
+  // Save button as template
+  const handleSaveAsTemplate = async (button: ActionButton) => {
+    if (!newTemplateName.trim()) {
+      toast({
+        title: "Fehler",
+        description: "Bitte geben Sie einen Namen für die Vorlage ein",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      await saveButtonTemplate({
+        name: newTemplateName,
+        label: button.label,
+        variant: button.variant,
+        icon: button.icon,
+        actionType: button.actionType,
+        statusMessage: button.statusMessage
+      });
+      
+      // Update button with template name
+      const updatedButtons = editedStep.actionButtons?.map(b => 
+        b.id === button.id ? { ...b, templateName: newTemplateName } : b
+      ) || [];
+      
+      setEditedStep({
+        ...editedStep,
+        actionButtons: updatedButtons
+      });
+      
+      setNewTemplateName('');
+      setSaveAsTemplate(false);
+      setCurrentButtonIndex(-1);
+      
+      toast({
+        title: "Erfolg",
+        description: "Button-Vorlage wurde gespeichert",
+      });
+    } catch (error) {
+      toast({
+        title: "Fehler",
+        description: "Button-Vorlage konnte nicht gespeichert werden",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const commonEmojis = [
+    '✅', '❌', '⚠️', '🔄', '📞', '✉️', '📋', '🔍', '💡', '⭐',
+    '🎯', '🚀', '💼', '📊', '🛠️', '🎨', '📝', '💬', '🔔', '🎉',
+    '🏆', '⚡', '🔒', '🔓', '📤', '📥', '🎮', '🏠', '👤', '⚙️'
+  ];
+
+  const statusColors = [
+    { name: 'Standard', value: '' },
+    { name: 'Blau', value: 'bg-blue-500' },
+    { name: 'Grün', value: 'bg-green-500' },
+    { name: 'Gelb', value: 'bg-yellow-500' },
+    { name: 'Rot', value: 'bg-red-500' },
+    { name: 'Lila', value: 'bg-purple-500' },
+    { name: 'Pink', value: 'bg-pink-500' },
+    { name: 'Grau', value: 'bg-gray-500' }
+  ];
 
   const availableNextSteps = allSteps.filter(s => s.id !== editedStep.id);
 
@@ -283,6 +383,77 @@ export function WorkflowStepEditor({ step, allSteps, onSave, onCancel }: Workflo
         </CardContent>
       </Card>
 
+      {/* Status-Übersicht Konfiguration */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Status-Übersicht</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Status-Icon</Label>
+              <div className="flex gap-2">
+                <Input
+                  value={editedStep.statusIcon || ''}
+                  onChange={(e) => setEditedStep({...editedStep, statusIcon: e.target.value})}
+                  placeholder="Emoji auswählen..."
+                  className="flex-1"
+                />
+              </div>
+              <div className="grid grid-cols-10 gap-1 mt-2">
+                {commonEmojis.map((emoji) => (
+                  <Button
+                    key={emoji}
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0 text-base hover:bg-accent"
+                    onClick={() => setEditedStep({...editedStep, statusIcon: emoji})}
+                  >
+                    {emoji}
+                  </Button>
+                ))}
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label>Hintergrundfarbe</Label>
+              <Select
+                value={editedStep.statusBackgroundColor || ''}
+                onValueChange={(value) => setEditedStep({...editedStep, statusBackgroundColor: value})}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Farbe auswählen" />
+                </SelectTrigger>
+                <SelectContent>
+                  {statusColors.map((color) => (
+                    <SelectItem key={color.value} value={color.value}>
+                      <div className="flex items-center gap-2">
+                        <div 
+                          className={`w-4 h-4 rounded ${color.value || 'bg-muted'}`}
+                        />
+                        {color.name}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          
+          {/* Status Preview */}
+          <div className="bg-muted p-3 rounded-md">
+            <Label className="text-sm font-medium">Vorschau:</Label>
+            <div className={`mt-2 p-2 rounded border ${editedStep.statusBackgroundColor || 'bg-background'}`}>
+              <div className="flex items-center gap-2">
+                {editedStep.statusIcon && <span>{editedStep.statusIcon}</span>}
+                <span className="font-medium">{editedStep.title || "Schritt Titel"}</span>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Sub-Steps Section */}
       <Card>
         <CardHeader>
@@ -448,10 +619,29 @@ export function WorkflowStepEditor({ step, allSteps, onSave, onCancel }: Workflo
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle>Aktions-Buttons</CardTitle>
-            <Button onClick={addActionButton} variant="outline" size="sm">
-              <Plus className="w-4 h-4 mr-2" />
-              Button hinzufügen
-            </Button>
+            <div className="flex gap-2">
+              {/* Template Selection */}
+              <Select value={selectedTemplate} onValueChange={setSelectedTemplate}>
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder="Vorlage auswählen..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {buttonTemplates.map((template) => (
+                    <SelectItem key={template.id} value={template.id}>
+                      <div className="flex items-center gap-2">
+                        {template.icon && <span>{template.icon}</span>}
+                        {template.name}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              
+              <Button onClick={addActionButton} variant="outline" size="sm">
+                <Plus className="w-4 h-4 mr-2" />
+                {selectedTemplate ? 'Vorlage hinzufügen' : 'Neuer Button'}
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -467,20 +657,35 @@ export function WorkflowStepEditor({ step, allSteps, onSave, onCancel }: Workflo
                     <div className="flex items-center gap-2">
                       <h4 className="font-medium flex items-center">
                         <MousePointer className="w-4 h-4 mr-2" />
-                        Button {index + 1}
+                        {button.templateName || `Button ${index + 1}`}
                       </h4>
                       <Switch
                         checked={button.enabled !== false}
                         onCheckedChange={() => toggleActionButton(index)}
                       />
                     </div>
-                    <Button 
-                      onClick={() => removeActionButton(index)} 
-                      variant="destructive" 
-                      size="sm"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                    <div className="flex gap-2">
+                      {/* Save as Template */}
+                      {!button.templateName && (
+                        <Button 
+                          onClick={() => {
+                            setSaveAsTemplate(true);
+                            setCurrentButtonIndex(index);
+                          }} 
+                          variant="outline" 
+                          size="sm"
+                        >
+                          <Save className="w-4 h-4" />
+                        </Button>
+                      )}
+                      <Button 
+                        onClick={() => removeActionButton(index)} 
+                        variant="destructive" 
+                        size="sm"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
 
                   {/* Button Preview */}
@@ -501,6 +706,14 @@ export function WorkflowStepEditor({ step, allSteps, onSave, onCancel }: Workflo
                   
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
+                      <Label>Button Name</Label>
+                      <Input
+                        value={button.templateName || `Button ${index + 1}`}
+                        onChange={(e) => updateActionButton(index, 'templateName', e.target.value)}
+                        placeholder="z.B. Problem Button"
+                      />
+                    </div>
+                    <div className="space-y-2">
                       <Label>Button Text</Label>
                       <Input
                         value={button.label}
@@ -508,6 +721,9 @@ export function WorkflowStepEditor({ step, allSteps, onSave, onCancel }: Workflo
                         placeholder="z.B. Problem aufgetreten"
                       />
                     </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Button Stil</Label>
                       <Select
@@ -527,9 +743,6 @@ export function WorkflowStepEditor({ step, allSteps, onSave, onCancel }: Workflo
                         </SelectContent>
                       </Select>
                     </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Aktions-Typ</Label>
                       <Select
@@ -549,30 +762,31 @@ export function WorkflowStepEditor({ step, allSteps, onSave, onCancel }: Workflo
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="space-y-2">
-                      <Label>Icon</Label>
-                      <div className="flex gap-2">
-                        <Input
-                          value={button.icon || ''}
-                          onChange={(e) => updateActionButton(index, 'icon', e.target.value)}
-                          placeholder="Emoji auswählen..."
-                          className="flex-1"
-                        />
-                      </div>
-                      <div className="grid grid-cols-10 gap-1 mt-2">
-                        {commonEmojis.map((emoji) => (
-                          <Button
-                            key={emoji}
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 w-8 p-0 text-base hover:bg-accent"
-                            onClick={() => updateActionButton(index, 'icon', emoji)}
-                          >
-                            {emoji}
-                          </Button>
-                        ))}
-                      </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label>Icon</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        value={button.icon || ''}
+                        onChange={(e) => updateActionButton(index, 'icon', e.target.value)}
+                        placeholder="Emoji auswählen..."
+                        className="flex-1"
+                      />
+                    </div>
+                    <div className="grid grid-cols-10 gap-1 mt-2">
+                      {commonEmojis.map((emoji) => (
+                        <Button
+                          key={emoji}
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 text-base hover:bg-accent"
+                          onClick={() => updateActionButton(index, 'icon', emoji)}
+                        >
+                          {emoji}
+                        </Button>
+                      ))}
                     </div>
                   </div>
                   
@@ -585,6 +799,40 @@ export function WorkflowStepEditor({ step, allSteps, onSave, onCancel }: Workflo
                       rows={2}
                     />
                   </div>
+                  
+                  {/* Save as Template Dialog */}
+                  {saveAsTemplate && currentButtonIndex === index && (
+                    <div className="border-t pt-4 mt-4">
+                      <div className="space-y-3">
+                        <Label>Als Vorlage speichern</Label>
+                        <div className="flex gap-2">
+                          <Input
+                            value={newTemplateName}
+                            onChange={(e) => setNewTemplateName(e.target.value)}
+                            placeholder="Vorlagen-Name eingeben..."
+                            className="flex-1"
+                          />
+                          <Button 
+                            onClick={() => handleSaveAsTemplate(button)}
+                            size="sm"
+                          >
+                            Speichern
+                          </Button>
+                          <Button 
+                            onClick={() => {
+                              setSaveAsTemplate(false);
+                              setNewTemplateName('');
+                              setCurrentButtonIndex(-1);
+                            }}
+                            variant="outline"
+                            size="sm"
+                          >
+                            Abbrechen
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             ))

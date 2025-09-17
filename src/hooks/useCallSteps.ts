@@ -11,6 +11,18 @@ export interface ActionButton {
   statusMessage?: string;
   icon?: string;
   enabled?: boolean;
+  templateName?: string;
+}
+
+export interface ButtonTemplate {
+  id: string;
+  name: string;
+  label: string;
+  variant: 'default' | 'destructive' | 'outline' | 'secondary';
+  icon?: string;
+  actionType: 'complete' | 'fail' | 'info' | 'custom';
+  statusMessage?: string;
+  backgroundColor?: string;
 }
 
 export interface CallStep {
@@ -37,6 +49,8 @@ export interface CallStep {
   sortOrder?: number;
   workflowName?: string;
   actionButtons?: ActionButton[];
+  statusBackgroundColor?: string;
+  statusIcon?: string;
 }
 
 export type NextStepCondition = CallStep['nextStepConditions'][0];
@@ -46,6 +60,7 @@ export function useCallSteps() {
   const [loading, setLoading] = useState(true);
   const [currentWorkflow, setCurrentWorkflow] = useState<string>('Gesprächsschritte');
   const [workflows, setWorkflows] = useState<string[]>([]);
+  const [buttonTemplates, setButtonTemplates] = useState<ButtonTemplate[]>([]);
   const { toast } = useToast();
 
   // Load available workflows
@@ -115,7 +130,9 @@ export function useCallSteps() {
           sortOrder: step.sort_order || 0,
           workflowName: step.workflow_name,
           actionButtons: ((step as any).action_buttons as ActionButton[]) || [],
-          subSteps: [] // Will be populated separately if needed
+          subSteps: [], // Will be populated separately if needed
+          statusBackgroundColor: step.status_background_color || undefined,
+          statusIcon: step.status_icon || undefined
         }));
         
         // Organize sub-steps under their parent steps
@@ -225,6 +242,8 @@ export function useCallSteps() {
         is_end_step: step.isEndStep,
         category: step.category,
         workflow_name: currentWorkflow,
+        status_background_color: step.statusBackgroundColor,
+        status_icon: step.statusIcon
       };
 
       if (isNew) {
@@ -413,9 +432,91 @@ export function useCallSteps() {
     setSteps(newSteps);
   };
 
+  // Load button templates
+  const loadButtonTemplates = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('button_templates')
+        .select('*')
+        .order('name');
+      
+      if (error) throw error;
+      
+      const templates: ButtonTemplate[] = (data || []).map(template => ({
+        id: template.id,
+        name: template.name,
+        label: template.label,
+        variant: (template.variant || 'default') as ButtonTemplate['variant'],
+        icon: template.icon || undefined,
+        actionType: (template.action_type || 'custom') as ButtonTemplate['actionType'], 
+        statusMessage: template.status_message || undefined,
+        backgroundColor: template.background_color || undefined
+      }));
+      
+      setButtonTemplates(templates);
+    } catch (error) {
+      console.error('Error loading button templates:', error);
+    }
+  };
+
+  // Save button template
+  const saveButtonTemplate = async (template: Omit<ButtonTemplate, 'id'>) => {
+    try {
+      const { data, error } = await supabase
+        .from('button_templates')
+        .insert([{
+          name: template.name,
+          label: template.label,
+          variant: template.variant,
+          icon: template.icon,
+          action_type: template.actionType,
+          status_message: template.statusMessage,
+          background_color: template.backgroundColor
+        }])
+        .select()
+        .single();
+      
+      if (error) throw error;
+      
+      const newTemplate: ButtonTemplate = {
+        id: data.id,
+        name: data.name,
+        label: data.label,
+        variant: (data.variant || 'default') as ButtonTemplate['variant'],
+        icon: data.icon || undefined,
+        actionType: (data.action_type || 'custom') as ButtonTemplate['actionType'],
+        statusMessage: data.status_message || undefined,
+        backgroundColor: data.background_color || undefined
+      };
+      
+      setButtonTemplates(prev => [...prev, newTemplate]);
+      return newTemplate;
+    } catch (error) {
+      console.error('Error saving button template:', error);
+      throw error;
+    }
+  };
+
+  // Delete button template
+  const deleteButtonTemplate = async (templateId: string) => {
+    try {
+      const { error } = await supabase
+        .from('button_templates')
+        .delete()
+        .eq('id', templateId);
+      
+      if (error) throw error;
+      setButtonTemplates(prev => prev.filter(t => t.id !== templateId));
+    } catch (error) {
+      console.error('Error deleting button template:', error);
+      throw error;
+    }
+  };
+
   // Load workflows on mount
   useEffect(() => {
     loadWorkflows();
+    loadButtonTemplates();
   }, []);
 
   // Load steps when workflow changes
@@ -430,6 +531,7 @@ export function useCallSteps() {
     loading,
     currentWorkflow,
     workflows,
+    buttonTemplates,
     setCurrentWorkflow,
     createWorkflow,
     deleteWorkflow,
@@ -437,6 +539,9 @@ export function useCallSteps() {
     deleteStep,
     updateStepsLocally,
     reorderSteps,
-    reloadSteps: loadSteps
+    reloadSteps: loadSteps,
+    saveButtonTemplate,
+    deleteButtonTemplate,
+    loadButtonTemplates
   };
 }

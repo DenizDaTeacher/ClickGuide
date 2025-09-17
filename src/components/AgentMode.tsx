@@ -290,8 +290,8 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
                       Schritt abgeschlossen
                     </Button>
                     
-                    {/* Custom action buttons - only show enabled ones */}
-                    {currentStep.actionButtons && currentStep.actionButtons
+                    {/* Custom action buttons - only show for current step and enabled ones */}
+                    {currentDisplayStep && currentDisplayStep.actionButtons && currentDisplayStep.actionButtons
                       .filter(button => button.enabled !== false)
                       .map((button) => {
                         return (
@@ -328,11 +328,14 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
             <Card className="shadow-card">
               <CardHeader>
                 <CardTitle className="text-lg flex items-center">
+                  {currentDisplayStep?.statusIcon && <span className="mr-2">{currentDisplayStep.statusIcon}</span>}
                   <Shield className="w-5 h-5 mr-2" />
                   Status Übersicht
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent 
+                className={`space-y-4 ${currentDisplayStep?.statusBackgroundColor || ''}`}
+              >
                 <div className="flex items-center justify-between">
                   <span className="text-sm">Pflichtschritte:</span>
                   <Badge variant={canProceed ? "default" : "destructive"}>

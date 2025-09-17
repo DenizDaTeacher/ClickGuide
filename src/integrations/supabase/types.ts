@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      button_templates: {
+        Row: {
+          action_type: string
+          background_color: string | null
+          created_at: string
+          icon: string | null
+          id: string
+          label: string
+          name: string
+          status_message: string | null
+          updated_at: string
+          variant: string
+        }
+        Insert: {
+          action_type?: string
+          background_color?: string | null
+          created_at?: string
+          icon?: string | null
+          id?: string
+          label: string
+          name: string
+          status_message?: string | null
+          updated_at?: string
+          variant?: string
+        }
+        Update: {
+          action_type?: string
+          background_color?: string | null
+          created_at?: string
+          icon?: string | null
+          id?: string
+          label?: string
+          name?: string
+          status_message?: string | null
+          updated_at?: string
+          variant?: string
+        }
+        Relationships: []
+      }
       call_steps: {
         Row: {
           action_buttons: Json | null
@@ -31,6 +70,8 @@ export type Database = {
           position_y: number | null
           required: boolean
           sort_order: number
+          status_background_color: string | null
+          status_icon: string | null
           step_id: string
           step_type: string
           title: string
@@ -53,6 +94,8 @@ export type Database = {
           position_y?: number | null
           required?: boolean
           sort_order?: number
+          status_background_color?: string | null
+          status_icon?: string | null
           step_id: string
           step_type?: string
           title: string
@@ -75,6 +118,8 @@ export type Database = {
           position_y?: number | null
           required?: boolean
           sort_order?: number
+          status_background_color?: string | null
+          status_icon?: string | null
           step_id?: string
           step_type?: string
           title?: string
