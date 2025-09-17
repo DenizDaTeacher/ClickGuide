@@ -34,6 +34,7 @@ export type Database = {
           step_type: string
           title: string
           updated_at: string
+          workflow_name: string
         }
         Insert: {
           category?: string | null
@@ -54,6 +55,7 @@ export type Database = {
           step_type?: string
           title: string
           updated_at?: string
+          workflow_name?: string
         }
         Update: {
           category?: string | null
@@ -74,6 +76,7 @@ export type Database = {
           step_type?: string
           title?: string
           updated_at?: string
+          workflow_name?: string
         }
         Relationships: [
           {

@@ -14,7 +14,18 @@ export default function CallDashboard() {
   const [password, setPassword] = useState("");
   const [isEditorUnlocked, setIsEditorUnlocked] = useState(false);
   
-  const { steps, loading, updateStepsLocally } = useCallSteps();
+  const { 
+    steps, 
+    loading, 
+    currentWorkflow,
+    workflows,
+    setCurrentWorkflow,
+    createWorkflow,
+    deleteWorkflow,
+    saveStep, 
+    deleteStep, 
+    updateStepsLocally 
+  } = useCallSteps();
 
   const handleEditorAccess = () => {
     if (password === "CCONE777") {
@@ -80,7 +91,18 @@ export default function CallDashboard() {
         ) : mode === 'agent' ? (
           <AgentMode steps={steps} onStepsUpdate={updateStepsLocally} />
         ) : (
-          <EditorMode steps={steps} />
+          <EditorMode
+            steps={steps}
+            onStepsUpdate={updateStepsLocally}
+            loading={loading}
+            onSaveStep={saveStep}
+            onDeleteStep={deleteStep}
+            currentWorkflow={currentWorkflow}
+            workflows={workflows}
+            onWorkflowChange={setCurrentWorkflow}
+            onCreateWorkflow={createWorkflow}
+            onDeleteWorkflow={deleteWorkflow}
+          />
         )}
 
         {/* Password Dialog */}

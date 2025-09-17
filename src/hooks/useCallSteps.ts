@@ -21,9 +21,10 @@ export interface CallStep {
   positionY: number;
   isStartStep: boolean;
   isEndStep: boolean;
-  category?: string; // New field for custom categories/labels
-  subSteps?: CallStep[]; // New field for sub-steps
-  sortOrder?: number; // For sorting steps
+  category?: string;
+  subSteps?: CallStep[];
+  sortOrder?: number;
+  workflowName?: string;
 }
 
 export type NextStepCondition = CallStep['nextStepConditions'][0];
@@ -31,15 +32,45 @@ export type NextStepCondition = CallStep['nextStepConditions'][0];
 export function useCallSteps() {
   const [steps, setSteps] = useState<CallStep[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentWorkflow, setCurrentWorkflow] = useState<string>('Gesprächsschritte');
+  const [workflows, setWorkflows] = useState<string[]>([]);
   const { toast } = useToast();
 
-  // Load steps from Supabase
-  const loadSteps = async () => {
+  // Load available workflows
+  const loadWorkflows = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('call_steps')
+        .select('workflow_name')
+        .not('workflow_name', 'is', null);
+      
+      if (error) throw error;
+      
+      const uniqueWorkflows = [...new Set(data?.map(step => step.workflow_name))];
+      setWorkflows(uniqueWorkflows);
+      
+      if (uniqueWorkflows.length > 0 && !uniqueWorkflows.includes(currentWorkflow)) {
+        setCurrentWorkflow(uniqueWorkflows[0]);
+      }
+    } catch (error) {
+      console.error('Error loading workflows:', error);
+      toast({
+        title: "Fehler",
+        description: "Workflows konnten nicht geladen werden",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Load steps from Supabase for a specific workflow
+  const loadSteps = async (workflowName?: string) => {
+    const targetWorkflow = workflowName || currentWorkflow;
     try {
       setLoading(true);
       const { data, error } = await supabase
         .from('call_steps')
         .select('*')
+        .eq('workflow_name', targetWorkflow)
         .order('sort_order', { ascending: true });
 
       if (error) {
@@ -70,6 +101,7 @@ export function useCallSteps() {
           isEndStep: step.is_end_step || false,
           category: step.category || undefined,
           sortOrder: step.sort_order || 0,
+          workflowName: step.workflow_name,
           subSteps: [] // Will be populated separately if needed
         }));
         
@@ -95,6 +127,66 @@ export function useCallSteps() {
     }
   };
 
+  // Create a new workflow
+  const createWorkflow = async (name: string) => {
+    if (workflows.includes(name)) {
+      toast({
+        title: "Fehler",
+        description: "Eine Liste mit diesem Namen existiert bereits",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setWorkflows(prev => [...prev, name]);
+    setCurrentWorkflow(name);
+    setSteps([]);
+    
+    toast({
+      title: "Erfolg",
+      description: `Liste "${name}" wurde erstellt`,
+    });
+  };
+
+  // Delete a workflow
+  const deleteWorkflow = async (name: string) => {
+    if (name === 'Gesprächsschritte') {
+      toast({
+        title: "Fehler",
+        description: "Die Standard-Liste kann nicht gelöscht werden",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    try {
+      const { error } = await supabase
+        .from('call_steps')
+        .delete()
+        .eq('workflow_name', name);
+      
+      if (error) throw error;
+      
+      setWorkflows(prev => prev.filter(w => w !== name));
+      if (currentWorkflow === name) {
+        setCurrentWorkflow('Gesprächsschritte');
+        await loadSteps('Gesprächsschritte');
+      }
+      
+      toast({
+        title: "Erfolg",
+        description: `Liste "${name}" wurde gelöscht`,
+      });
+    } catch (error) {
+      console.error('Error deleting workflow:', error);
+      toast({
+        title: "Fehler",
+        description: "Liste konnte nicht gelöscht werden",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Save a step to Supabase
   const saveStep = async (step: CallStep, isNew: boolean = false) => {
     try {
@@ -111,7 +203,8 @@ export function useCallSteps() {
         position_y: step.positionY,
         is_start_step: step.isStartStep,
         is_end_step: step.isEndStep,
-        category: step.category
+        category: step.category,
+        workflow_name: currentWorkflow,
       };
 
       if (isNew) {
@@ -168,16 +261,17 @@ export function useCallSteps() {
             position_y: subStep.positionY || 0,
             is_start_step: false,
             is_end_step: false,
-            category: subStep.category
+            category: subStep.category,
+            workflow_name: currentWorkflow,
           };
           
-          const existingSubStep = await supabase
+          const { data: existingSubStep } = await supabase
             .from('call_steps')
             .select('id')
             .eq('step_id', subStep.id)
-            .single();
+            .maybeSingle();
             
-          if (existingSubStep.data) {
+          if (existingSubStep) {
             // Update existing sub-step
             await supabase
               .from('call_steps')
@@ -257,14 +351,26 @@ export function useCallSteps() {
     setSteps(newSteps);
   };
 
-  // Load steps on mount
+  // Load workflows on mount
   useEffect(() => {
-    loadSteps();
+    loadWorkflows();
   }, []);
+
+  // Load steps when workflow changes
+  useEffect(() => {
+    if (currentWorkflow) {
+      loadSteps();
+    }
+  }, [currentWorkflow]);
 
   return {
     steps,
     loading,
+    currentWorkflow,
+    workflows,
+    setCurrentWorkflow,
+    createWorkflow,
+    deleteWorkflow,
     saveStep,
     deleteStep,
     updateStepsLocally,
