@@ -18,11 +18,23 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
   const [stepHistory, setStepHistory] = useState<CallStep[]>([]);
   const [authenticationFailed, setAuthenticationFailed] = useState(false);
   const [statusMessages, setStatusMessages] = useState<string[]>([]);
+  const [currentSubStepIndex, setCurrentSubStepIndex] = useState<number | null>(null);
 
   const completedSteps = stepHistory.length;
   const totalSteps = steps.length;
   const requiredSteps = steps.filter(step => step.required);
   const completedRequiredSteps = stepHistory.filter(step => step.required).length;
+
+  // Get current display step (main step or sub-step)
+  const getCurrentDisplayStep = () => {
+    if (!currentStep) return null;
+    if (currentSubStepIndex !== null && currentStep.subSteps && currentStep.subSteps[currentSubStepIndex]) {
+      return currentStep.subSteps[currentSubStepIndex];
+    }
+    return currentStep;
+  };
+
+  const currentDisplayStep = getCurrentDisplayStep();
 
   // Find start step or use first step
   const getStartStep = () => {
@@ -41,6 +53,25 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
     
     console.log('✅ Completing step:', currentStep.title, 'ID:', currentStep.id);
     
+    // Handle sub-steps first
+    if (currentStep.subSteps && currentStep.subSteps.length > 0) {
+      if (currentSubStepIndex === null) {
+        // Start with first sub-step
+        console.log('🔄 Starting sub-steps for:', currentStep.title);
+        setCurrentSubStepIndex(0);
+        return;
+      } else if (currentSubStepIndex < currentStep.subSteps.length - 1) {
+        // Move to next sub-step
+        console.log('➡️ Moving to next sub-step:', currentSubStepIndex + 1);
+        setCurrentSubStepIndex(currentSubStepIndex + 1);
+        return;
+      } else {
+        // All sub-steps completed, continue with main step completion
+        console.log('✅ All sub-steps completed, completing main step');
+        setCurrentSubStepIndex(null);
+      }
+    }
+    
     const updatedSteps = steps.map(step => 
       step.id === currentStep.id ? { ...step, completed: true } : step
     );
@@ -48,6 +79,13 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
     
     // Add current step to history
     setStepHistory(prev => [...prev, currentStep]);
+    
+    // Check if this is an end step
+    if (currentStep.isEndStep) {
+      console.log('🏁 Reached end step, stopping workflow');
+      setCurrentStep(null);
+      return;
+    }
     
     // Move to next step
     if (nextStepId) {
@@ -117,6 +155,7 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
     console.log('🚀 Setting current step to:', startStep);
     setCurrentStep(startStep);
     setStepHistory([]);
+    setCurrentSubStepIndex(null);
     const resetSteps = steps.map(step => ({ ...step, completed: false }));
     onStepsUpdate(resetSteps);
     setAuthenticationFailed(false);
@@ -166,7 +205,7 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
         </div>
       )}
 
-      {callActive && currentStep && (
+      {callActive && currentDisplayStep && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Current Step */}
           <div className="lg:col-span-2">
@@ -174,14 +213,26 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-xl">
-                    {currentStep.title}
+                    {currentSubStepIndex !== null ? (
+                      <div className="space-y-1">
+                        <div className="text-base text-muted-foreground">
+                          {currentStep?.title} → Unterschritt {currentSubStepIndex + 1}
+                        </div>
+                        <div>{currentDisplayStep.title}</div>
+                      </div>
+                    ) : (
+                      currentDisplayStep.title
+                    )}
                   </CardTitle>
                   <div className="flex gap-2">
-                    {currentStep.required && (
+                    {currentDisplayStep.required && (
                       <Badge variant="destructive">Pflicht</Badge>
                     )}
-                    {currentStep.stepType !== 'normal' && (
-                      <Badge variant="outline">{currentStep.stepType}</Badge>
+                    {currentDisplayStep.stepType !== 'normal' && (
+                      <Badge variant="outline">{currentDisplayStep.stepType}</Badge>
+                    )}
+                    {currentDisplayStep.category && (
+                      <Badge variant="secondary">{currentDisplayStep.category}</Badge>
                     )}
                   </div>
                 </div>
