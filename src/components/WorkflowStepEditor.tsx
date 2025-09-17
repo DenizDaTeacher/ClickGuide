@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CallStep, NextStepCondition } from "@/hooks/useCallSteps";
-import { Plus, Trash2, Settings } from "lucide-react";
+import { CallStep, NextStepCondition, ActionButton } from "@/hooks/useCallSteps";
+import { Plus, Trash2, Settings, MousePointer } from "lucide-react";
 
 interface WorkflowStepEditorProps {
   step: CallStep;
@@ -20,7 +20,8 @@ export function WorkflowStepEditor({ step, allSteps, onSave, onCancel }: Workflo
   const [editedStep, setEditedStep] = useState<CallStep>({
     ...step,
     subSteps: step.subSteps || [],
-    category: step.category || ""
+    category: step.category || "",
+    actionButtons: step.actionButtons || []
   });
 
   const handleSave = () => {
@@ -56,6 +57,39 @@ export function WorkflowStepEditor({ step, allSteps, onSave, onCancel }: Workflo
     setEditedStep({
       ...editedStep,
       nextStepConditions: conditions
+    });
+  };
+
+  const addActionButton = () => {
+    const newButton: ActionButton = {
+      id: `action-${Date.now()}`,
+      label: "Neuer Button",
+      variant: "outline",
+      actionType: "info",
+      statusMessage: "",
+      icon: ""
+    };
+    setEditedStep({
+      ...editedStep,
+      actionButtons: [...(editedStep.actionButtons || []), newButton]
+    });
+  };
+
+  const updateActionButton = (index: number, field: keyof ActionButton, value: any) => {
+    const buttons = [...(editedStep.actionButtons || [])];
+    buttons[index] = { ...buttons[index], [field]: value };
+    setEditedStep({
+      ...editedStep,
+      actionButtons: buttons
+    });
+  };
+
+  const removeActionButton = (index: number) => {
+    const buttons = [...(editedStep.actionButtons || [])];
+    buttons.splice(index, 1);
+    setEditedStep({
+      ...editedStep,
+      actionButtons: buttons
     });
   };
 
@@ -390,6 +424,120 @@ export function WorkflowStepEditor({ step, allSteps, onSave, onCancel }: Workflo
                 </Card>
               ))}
             </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Action Buttons Configuration */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle>Aktions-Buttons</CardTitle>
+            <Button onClick={addActionButton} variant="outline" size="sm">
+              <Plus className="w-4 h-4 mr-2" />
+              Button hinzufügen
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="text-sm text-muted-foreground mb-4">
+            Der "Schritt abgeschlossen" Button ist immer vorhanden. Hier können Sie zusätzliche Buttons konfigurieren.
+          </div>
+          
+          {editedStep.actionButtons && editedStep.actionButtons.length > 0 ? (
+            editedStep.actionButtons.map((button, index) => (
+              <Card key={button.id} className="border-muted">
+                <CardContent className="p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-medium flex items-center">
+                      <MousePointer className="w-4 h-4 mr-2" />
+                      Button {index + 1}
+                    </h4>
+                    <Button 
+                      onClick={() => removeActionButton(index)} 
+                      variant="destructive" 
+                      size="sm"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Button Text</Label>
+                      <Input
+                        value={button.label}
+                        onChange={(e) => updateActionButton(index, 'label', e.target.value)}
+                        placeholder="z.B. Problem aufgetreten"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Button Stil</Label>
+                      <Select
+                        value={button.variant}
+                        onValueChange={(value: ActionButton['variant']) => 
+                          updateActionButton(index, 'variant', value)
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="default">Standard</SelectItem>
+                          <SelectItem value="destructive">Rot (Fehler)</SelectItem>
+                          <SelectItem value="outline">Umrandet</SelectItem>
+                          <SelectItem value="secondary">Sekundär</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Aktions-Typ</Label>
+                      <Select
+                        value={button.actionType}
+                        onValueChange={(value: ActionButton['actionType']) => 
+                          updateActionButton(index, 'actionType', value)
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="complete">Schritt abschließen</SelectItem>
+                          <SelectItem value="fail">Fehler/Problem</SelectItem>
+                          <SelectItem value="info">Info anzeigen</SelectItem>
+                          <SelectItem value="custom">Benutzerdefiniert</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Icon (optional)</Label>
+                      <Input
+                        value={button.icon || ''}
+                        onChange={(e) => updateActionButton(index, 'icon', e.target.value)}
+                        placeholder="z.B. AlertCircle, Info, CheckCircle"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label>Status-Nachricht</Label>
+                    <Textarea
+                      value={button.statusMessage || ''}
+                      onChange={(e) => updateActionButton(index, 'statusMessage', e.target.value)}
+                      placeholder="Diese Nachricht wird in der Status-Übersicht angezeigt"
+                      rows={2}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          ) : (
+            <p className="text-muted-foreground text-center py-8">
+              Keine zusätzlichen Buttons konfiguriert. Der Standard "Schritt abgeschlossen" Button ist immer verfügbar.
+            </p>
           )}
         </CardContent>
       </Card>

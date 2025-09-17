@@ -3,8 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { CheckCircle, AlertCircle, Phone, User, Shield, FileText, Clock, GitBranch } from "lucide-react";
-import { CallStep } from "@/hooks/useCallSteps";
+import { CheckCircle, AlertCircle, Phone, User, Shield, FileText, Clock, GitBranch, Info, X } from "lucide-react";
+import { CallStep, ActionButton } from "@/hooks/useCallSteps";
 
 interface AgentModeProps {
   steps: CallStep[];
@@ -17,6 +17,7 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
   const [currentStep, setCurrentStep] = useState<CallStep | null>(null);
   const [stepHistory, setStepHistory] = useState<CallStep[]>([]);
   const [authenticationFailed, setAuthenticationFailed] = useState(false);
+  const [statusMessages, setStatusMessages] = useState<string[]>([]);
 
   const completedSteps = stepHistory.length;
   const totalSteps = steps.length;
@@ -81,6 +82,29 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
     }
   };
 
+  const handleActionButton = (button: ActionButton) => {
+    if (!currentStep) return;
+    
+    // Handle different action types
+    switch (button.actionType) {
+      case 'complete':
+        handleStepComplete();
+        break;
+      case 'fail':
+        setAuthenticationFailed(true);
+        if (button.statusMessage) {
+          setStatusMessages(prev => [...prev, button.statusMessage!]);
+        }
+        break;
+      case 'info':
+      case 'custom':
+        if (button.statusMessage) {
+          setStatusMessages(prev => [...prev, button.statusMessage!]);
+        }
+        break;
+    }
+  };
+
   const handleAuthenticationFailure = () => {
     setAuthenticationFailed(true);
   };
@@ -96,6 +120,7 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
     const resetSteps = steps.map(step => ({ ...step, completed: false }));
     onStepsUpdate(resetSteps);
     setAuthenticationFailed(false);
+    setStatusMessages([]);
   };
 
   const endCall = () => {
@@ -105,6 +130,7 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
     const resetSteps = steps.map(step => ({ ...step, completed: false }));
     onStepsUpdate(resetSteps);
     setAuthenticationFailed(false);
+    setStatusMessages([]);
   };
 
   const canProceed = completedRequiredSteps === requiredSteps.length && !authenticationFailed;
@@ -203,7 +229,8 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
                     </div>
                   </div>
                 ) : (
-                  <div className="flex space-x-3">
+                  <div className="flex flex-wrap gap-3">
+                    {/* Default completion button - always present */}
                     <Button 
                       onClick={() => handleStepComplete()}
                       className="bg-gradient-primary"
@@ -212,7 +239,28 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
                       Schritt abgeschlossen
                     </Button>
                     
-                    {currentStep.stepType === 'decision' && (
+                    {/* Custom action buttons */}
+                    {currentStep.actionButtons && currentStep.actionButtons.map((button) => {
+                      const IconComponent = button.icon ? 
+                        (button.icon === 'AlertCircle' ? AlertCircle :
+                         button.icon === 'Info' ? Info :
+                         button.icon === 'CheckCircle' ? CheckCircle :
+                         button.icon === 'X' ? X : AlertCircle) : AlertCircle;
+                      
+                      return (
+                        <Button
+                          key={button.id}
+                          variant={button.variant}
+                          onClick={() => handleActionButton(button)}
+                        >
+                          <IconComponent className="w-4 h-4 mr-2" />
+                          {button.label}
+                        </Button>
+                      );
+                    })}
+                    
+                    {/* Legacy decision button for backward compatibility */}
+                    {currentStep.stepType === 'decision' && (!currentStep.actionButtons || currentStep.actionButtons.length === 0) && (
                       <Button 
                         variant="destructive"
                         onClick={handleAuthenticationFailure}
@@ -255,6 +303,25 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
                     </p>
                   </div>
                 )}
+                
+                {/* Custom status messages from action buttons */}
+                {statusMessages.map((message, index) => (
+                  <div key={index} className="p-3 bg-primary/10 border border-primary/20 rounded-lg">
+                    <div className="flex items-start justify-between">
+                      <p className="text-sm text-primary font-medium pr-2">
+                        {message}
+                      </p>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setStatusMessages(prev => prev.filter((_, i) => i !== index))}
+                        className="h-6 w-6 p-0 text-primary/60 hover:text-primary"
+                      >
+                        <X className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
                 
                 {canProceed && completedRequiredSteps === requiredSteps.length && (
                   <div className="p-3 bg-success/10 border border-success/20 rounded-lg">

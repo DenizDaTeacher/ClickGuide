@@ -2,6 +2,15 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
+export interface ActionButton {
+  id: string;
+  label: string;
+  variant: 'default' | 'destructive' | 'outline' | 'secondary';
+  actionType: 'complete' | 'fail' | 'info' | 'custom';
+  statusMessage?: string;
+  icon?: string;
+}
+
 export interface CallStep {
   id: string;
   title: string;
@@ -25,6 +34,7 @@ export interface CallStep {
   subSteps?: CallStep[];
   sortOrder?: number;
   workflowName?: string;
+  actionButtons?: ActionButton[];
 }
 
 export type NextStepCondition = CallStep['nextStepConditions'][0];
@@ -102,6 +112,7 @@ export function useCallSteps() {
           category: step.category || undefined,
           sortOrder: step.sort_order || 0,
           workflowName: step.workflow_name,
+          actionButtons: ((step as any).action_buttons as ActionButton[]) || [],
           subSteps: [] // Will be populated separately if needed
         }));
         
@@ -205,6 +216,7 @@ export function useCallSteps() {
         step_type: step.stepType,
         condition_label: step.conditionLabel,
         next_step_conditions: step.nextStepConditions,
+        action_buttons: step.actionButtons || [],
         position_x: step.positionX,
         position_y: step.positionY,
         is_start_step: step.isStartStep,
