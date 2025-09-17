@@ -3,10 +3,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { BarChart3, Download, Workflow, List } from "lucide-react";
+import { BarChart3, Download, Workflow, List, Plus, Settings, Trash } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useCallSteps, CallStep } from "@/hooks/useCallSteps";
 import { WorkflowEditor } from "./WorkflowEditor";
+import { WorkflowStepEditor } from "./WorkflowStepEditor";
 
 interface EditorModeProps {
   steps: CallStep[];
@@ -14,9 +15,45 @@ interface EditorModeProps {
 
 export default function EditorMode({ steps }: EditorModeProps) {
   const [showAnalytics, setShowAnalytics] = useState(false);
-  const [viewMode, setViewMode] = useState<'workflow' | 'list'>('workflow');
+  const [viewMode, setViewMode] = useState<'workflow' | 'list'>('list');
+  const [selectedStep, setSelectedStep] = useState<CallStep | null>(null);
+  const [showStepEditor, setShowStepEditor] = useState(false);
   
   const { saveStep, deleteStep } = useCallSteps();
+
+  const handleAddStep = () => {
+    const newStep: Partial<CallStep> = {
+      title: "",
+      description: "",
+      communication: "",
+      required: false,
+      stepType: "normal",
+      category: "",
+      subSteps: [],
+      nextStepConditions: [],
+      positionX: 100,
+      positionY: 100,
+      isStartStep: false,
+      isEndStep: false,
+      id: `step-${Date.now()}`
+    };
+    setSelectedStep(newStep as CallStep);
+    setShowStepEditor(true);
+  };
+
+  const handleEditStep = (step: CallStep) => {
+    setSelectedStep(step);
+    setShowStepEditor(true);
+  };
+
+  const handleSaveStep = async (step: CallStep) => {
+    const isNew = !steps.find(s => s.id === step.id);
+    const success = await saveStep(step, isNew);
+    if (success) {
+      setShowStepEditor(false);
+      setSelectedStep(null);
+    }
+  };
 
   const exportConfiguration = async () => {
     const XLSX = await import('xlsx');
@@ -130,37 +167,108 @@ export default function EditorMode({ steps }: EditorModeProps) {
           />
         ) : (
           <div className="p-4 h-full overflow-auto">
-            <Card className="shadow-card">
-              <CardHeader>
-                <CardTitle>Gesprächsschritte (Listen-Ansicht)</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {steps.map((step, index) => (
-                    <div key={step.id} className="border rounded-lg p-4 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
-                          <span className="font-mono text-sm">{index + 1}</span>
-                          <h3 className="font-semibold">{step.title}</h3>
-                          {step.stepType !== 'normal' && (
-                            <span className="text-xs px-2 py-1 bg-muted rounded">{step.stepType}</span>
-                          )}
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-medium">Gesprächsschritte bearbeiten</h3>
+                <Button onClick={handleAddStep} className="bg-gradient-primary">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Neuen Schritt hinzufügen
+                </Button>
+              </div>
+              
+              <div className="space-y-4">
+                {steps
+                  .filter(step => !step.parentStepId) // Only show main steps, sub-steps are shown within their parent
+                  .sort((a, b) => a.sortOrder - b.sortOrder)
+                  .map((step, index) => (
+                    <Card key={step.id} className="shadow-card">
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center space-x-3">
+                            <span className="bg-primary text-primary-foreground rounded-full w-8 h-8 flex items-center justify-center text-sm font-medium">
+                              {index + 1}
+                            </span>
+                            <div>
+                              <h4 className="font-semibold">{step.title}</h4>
+                              {step.category && (
+                                <span className="text-xs px-2 py-1 bg-secondary text-secondary-foreground rounded mt-1 inline-block">
+                                  {step.category}
+                                </span>
+                              )}
+                            </div>
+                            {step.required && (
+                              <span className="text-xs bg-destructive/10 text-destructive px-2 py-1 rounded">
+                                Pflicht
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex space-x-2">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => handleEditStep(step)}
+                            >
+                              <Settings className="w-4 h-4" />
+                            </Button>
+                            <Button 
+                              variant="destructive" 
+                              size="sm"
+                              onClick={() => deleteStep(step.id)}
+                            >
+                              <Trash className="w-4 h-4" />
+                            </Button>
+                          </div>
                         </div>
-                      </div>
-                      <p className="text-sm text-muted-foreground">{step.description}</p>
-                      {step.nextStepConditions.length > 0 && (
-                        <div className="text-sm">
-                          <strong>Verzweigungen:</strong> {step.nextStepConditions.map(c => c.label).join(', ')}
-                        </div>
-                      )}
-                    </div>
+                        
+                        <p className="text-sm text-muted-foreground mb-3">{step.description}</p>
+                        
+                        {step.subSteps && step.subSteps.length > 0 && (
+                          <div className="ml-4 border-l-2 border-muted pl-4 space-y-2">
+                            <h5 className="text-sm font-medium text-muted-foreground">Unterschritte:</h5>
+                            {step.subSteps.map((subStep, subIndex) => (
+                              <div key={subStep.id} className="text-sm bg-muted/50 rounded p-2">
+                                <span className="font-medium">{subIndex + 1}.{index + 1} {subStep.title}</span>
+                                {subStep.category && (
+                                  <span className="ml-2 text-xs px-2 py-1 bg-background rounded">
+                                    {subStep.category}
+                                  </span>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
                   ))}
-                </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </div>
         )}
       </div>
+
+      {/* Step Editor Dialog */}
+      <Dialog open={showStepEditor} onOpenChange={setShowStepEditor}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedStep && steps.find(s => s.id === selectedStep.id) 
+                ? "Schritt bearbeiten" 
+                : "Neuen Schritt hinzufügen"}
+            </DialogTitle>
+          </DialogHeader>
+          {selectedStep && (
+            <WorkflowStepEditor
+              step={selectedStep}
+              allSteps={steps}
+              onSave={handleSaveStep}
+              onCancel={() => {
+                setShowStepEditor(false);
+                setSelectedStep(null);
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Analytics Dialog */}
       <Dialog open={showAnalytics} onOpenChange={setShowAnalytics}>

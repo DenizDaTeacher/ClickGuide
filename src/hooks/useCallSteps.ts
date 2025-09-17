@@ -21,7 +21,12 @@ export interface CallStep {
   positionY: number;
   isStartStep: boolean;
   isEndStep: boolean;
+  category?: string; // New field for custom categories/labels
+  subSteps?: CallStep[]; // New field for sub-steps
+  sortOrder?: number; // For sorting steps
 }
+
+export type NextStepCondition = CallStep['nextStepConditions'][0];
 
 export function useCallSteps() {
   const [steps, setSteps] = useState<CallStep[]>([]);
@@ -62,9 +67,21 @@ export function useCallSteps() {
           positionX: step.position_x || 0,
           positionY: step.position_y || 0,
           isStartStep: step.is_start_step || false,
-          isEndStep: step.is_end_step || false
+          isEndStep: step.is_end_step || false,
+          category: step.category || undefined,
+          sortOrder: step.sort_order || 0,
+          subSteps: [] // Will be populated separately if needed
         }));
-        setSteps(formattedSteps);
+        
+        // Organize sub-steps under their parent steps
+        const mainSteps = formattedSteps.filter(step => !step.parentStepId);
+        const subSteps = formattedSteps.filter(step => step.parentStepId);
+        
+        mainSteps.forEach(mainStep => {
+          mainStep.subSteps = subSteps.filter(sub => sub.parentStepId === mainStep.id);
+        });
+        
+        setSteps(mainSteps);
       }
     } catch (error) {
       console.error('Error loading steps:', error);
@@ -93,12 +110,13 @@ export function useCallSteps() {
         position_x: step.positionX,
         position_y: step.positionY,
         is_start_step: step.isStartStep,
-        is_end_step: step.isEndStep
+        is_end_step: step.isEndStep,
+        category: step.category
       };
 
       if (isNew) {
         // Insert new step
-        const maxSortOrder = Math.max(...steps.map(s => steps.findIndex(step => step.id === s.id) + 1), 0);
+        const maxSortOrder = Math.max(...steps.map((_, index) => index + 1), 0);
         const { error } = await supabase
           .from('call_steps')
           .insert({
@@ -131,6 +149,50 @@ export function useCallSteps() {
             variant: "destructive",
           });
           return false;
+        }
+      }
+      
+      // Save sub-steps if they exist
+      if (step.subSteps && step.subSteps.length > 0) {
+        for (const subStep of step.subSteps) {
+          const subStepData = {
+            title: subStep.title,
+            description: subStep.description,
+            communication: subStep.communication,
+            required: subStep.required,
+            parent_step_id: step.id,
+            step_type: 'sub_step',
+            condition_label: subStep.conditionLabel,
+            next_step_conditions: subStep.nextStepConditions,
+            position_x: subStep.positionX || 0,
+            position_y: subStep.positionY || 0,
+            is_start_step: false,
+            is_end_step: false,
+            category: subStep.category
+          };
+          
+          const existingSubStep = await supabase
+            .from('call_steps')
+            .select('id')
+            .eq('step_id', subStep.id)
+            .single();
+            
+          if (existingSubStep.data) {
+            // Update existing sub-step
+            await supabase
+              .from('call_steps')
+              .update(subStepData)
+              .eq('step_id', subStep.id);
+          } else {
+            // Insert new sub-step
+            await supabase
+              .from('call_steps')
+              .insert({
+                step_id: subStep.id,
+                sort_order: subStep.sortOrder || 0,
+                ...subStepData
+              });
+          }
         }
       }
 

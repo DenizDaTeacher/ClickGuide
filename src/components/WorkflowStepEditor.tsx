@@ -1,15 +1,13 @@
 import { useState } from "react";
-import { CallStep } from "@/hooks/useCallSteps";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Save, Plus, Trash2 } from "lucide-react";
-import { Separator } from "@/components/ui/separator";
+import { CallStep, NextStepCondition } from "@/hooks/useCallSteps";
+import { Plus, Trash2, Settings } from "lucide-react";
 
 interface WorkflowStepEditorProps {
   step: CallStep;
@@ -19,7 +17,11 @@ interface WorkflowStepEditorProps {
 }
 
 export function WorkflowStepEditor({ step, allSteps, onSave, onCancel }: WorkflowStepEditorProps) {
-  const [editedStep, setEditedStep] = useState<CallStep>(step);
+  const [editedStep, setEditedStep] = useState<CallStep>({
+    ...step,
+    subSteps: step.subSteps || [],
+    category: step.category || ""
+  });
 
   const handleSave = () => {
     if (editedStep.title && editedStep.description && editedStep.communication) {
@@ -28,7 +30,7 @@ export function WorkflowStepEditor({ step, allSteps, onSave, onCancel }: Workflo
   };
 
   const addCondition = () => {
-    const newCondition = {
+    const newCondition: NextStepCondition = {
       condition: "",
       nextStepId: "",
       label: "Neue Bedingung"
@@ -48,7 +50,7 @@ export function WorkflowStepEditor({ step, allSteps, onSave, onCancel }: Workflo
     });
   };
 
-  const updateCondition = (index: number, field: string, value: string) => {
+  const updateCondition = (index: number, field: keyof NextStepCondition, value: string) => {
     const conditions = [...editedStep.nextStepConditions];
     conditions[index] = { ...conditions[index], [field]: value };
     setEditedStep({
@@ -57,15 +59,58 @@ export function WorkflowStepEditor({ step, allSteps, onSave, onCancel }: Workflo
     });
   };
 
-  // Filter out current step and parent steps to prevent circular references
-  const availableNextSteps = allSteps.filter(s => 
-    s.id !== editedStep.id && 
-    s.parentStepId !== editedStep.id
-  );
+  const availableNextSteps = allSteps.filter(s => s.id !== editedStep.id);
+
+  const addSubStep = () => {
+    const newSubStep: CallStep = {
+      id: `sub-step-${Date.now()}`,
+      title: "",
+      description: "",
+      communication: "",
+      completed: false,
+      required: false,
+      sortOrder: (editedStep.subSteps?.length || 0) + 1,
+      stepType: "sub_step",
+      nextStepConditions: [],
+      positionX: 0,
+      positionY: 0,
+      isStartStep: false,
+      isEndStep: false,
+      parentStepId: editedStep.id,
+      category: ""
+    };
+    
+    setEditedStep({
+      ...editedStep,
+      subSteps: [...(editedStep.subSteps || []), newSubStep]
+    });
+  };
+
+  const updateSubStep = (subStepIndex: number, field: keyof CallStep, value: any) => {
+    const updatedSubSteps = [...(editedStep.subSteps || [])];
+    updatedSubSteps[subStepIndex] = {
+      ...updatedSubSteps[subStepIndex],
+      [field]: value
+    };
+    
+    setEditedStep({
+      ...editedStep,
+      subSteps: updatedSubSteps
+    });
+  };
+
+  const removeSubStep = (subStepIndex: number) => {
+    const updatedSubSteps = [...(editedStep.subSteps || [])];
+    updatedSubSteps.splice(subStepIndex, 1);
+    
+    setEditedStep({
+      ...editedStep,
+      subSteps: updatedSubSteps
+    });
+  };
 
   return (
     <div className="space-y-6 max-w-4xl">
-      {/* Basic Information */}
       <Card>
         <CardHeader>
           <CardTitle>Schritt-Informationen</CardTitle>
@@ -83,23 +128,13 @@ export function WorkflowStepEditor({ step, allSteps, onSave, onCancel }: Workflo
             </div>
             
             <div>
-              <Label htmlFor="stepType">Schritt-Typ</Label>
-              <Select
-                value={editedStep.stepType}
-                onValueChange={(value: CallStep['stepType']) => 
-                  setEditedStep({ ...editedStep, stepType: value })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="normal">Normal</SelectItem>
-                  <SelectItem value="decision">Entscheidung</SelectItem>
-                  <SelectItem value="condition">Bedingung</SelectItem>
-                  <SelectItem value="sub_step">Unterschritt</SelectItem>
-                </SelectContent>
-              </Select>
+              <Label htmlFor="category">Kategorie/Label</Label>
+              <Input
+                id="category"
+                value={editedStep.category || ''}
+                onChange={(e) => setEditedStep({...editedStep, category: e.target.value})}
+                placeholder="z.B. Wichtig, Optional, Verkauf, Support..."
+              />
             </div>
           </div>
 
@@ -125,17 +160,39 @@ export function WorkflowStepEditor({ step, allSteps, onSave, onCancel }: Workflo
             />
           </div>
 
-          {editedStep.stepType === 'condition' && (
+          <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="conditionLabel">Bedingungstext</Label>
-              <Input
-                id="conditionLabel"
-                value={editedStep.conditionLabel || ""}
-                onChange={(e) => setEditedStep({ ...editedStep, conditionLabel: e.target.value })}
-                placeholder="z.B. 'Was ist das Kundenanliegen?'"
-              />
+              <Label htmlFor="stepType">Schritt-Typ</Label>
+              <Select
+                value={editedStep.stepType}
+                onValueChange={(value: CallStep['stepType']) => 
+                  setEditedStep({ ...editedStep, stepType: value })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="normal">Normal</SelectItem>
+                  <SelectItem value="decision">Entscheidung</SelectItem>
+                  <SelectItem value="condition">Bedingung</SelectItem>
+                  <SelectItem value="sub_step">Unterschritt</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-          )}
+            
+            {editedStep.stepType === 'condition' && (
+              <div>
+                <Label htmlFor="conditionLabel">Bedingungstext</Label>
+                <Input
+                  id="conditionLabel"
+                  value={editedStep.conditionLabel || ""}
+                  onChange={(e) => setEditedStep({ ...editedStep, conditionLabel: e.target.value })}
+                  placeholder="z.B. 'Was ist das Kundenanliegen?'"
+                />
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
 
@@ -176,6 +233,89 @@ export function WorkflowStepEditor({ step, allSteps, onSave, onCancel }: Workflo
         </CardContent>
       </Card>
 
+      {/* Sub-Steps Section */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle>Unterschritte</CardTitle>
+            <Button onClick={addSubStep} variant="outline" size="sm">
+              <Plus className="w-4 h-4 mr-2" />
+              Unterschritt hinzufügen
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {editedStep.subSteps && editedStep.subSteps.length > 0 ? (
+            editedStep.subSteps.map((subStep, index) => (
+              <Card key={subStep.id} className="border-muted">
+                <CardContent className="p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-medium">Unterschritt {index + 1}</h4>
+                    <Button 
+                      onClick={() => removeSubStep(index)} 
+                      variant="destructive" 
+                      size="sm"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Titel</Label>
+                      <Input
+                        value={subStep.title}
+                        onChange={(e) => updateSubStep(index, 'title', e.target.value)}
+                        placeholder="Unterschritt-Titel"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Kategorie</Label>
+                      <Input
+                        value={subStep.category || ''}
+                        onChange={(e) => updateSubStep(index, 'category', e.target.value)}
+                        placeholder="Kategorie für diesen Unterschritt"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label>Beschreibung</Label>
+                    <Textarea
+                      value={subStep.description}
+                      onChange={(e) => updateSubStep(index, 'description', e.target.value)}
+                      placeholder="Was soll in diesem Unterschritt getan werden?"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label>Kommunikation</Label>
+                    <Textarea
+                      value={subStep.communication}
+                      onChange={(e) => updateSubStep(index, 'communication', e.target.value)}
+                      placeholder="Was soll dem Kunden kommuniziert werden?"
+                    />
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id={`required-${index}`}
+                      checked={subStep.required}
+                      onCheckedChange={(checked) => updateSubStep(index, 'required', checked)}
+                    />
+                    <Label htmlFor={`required-${index}`}>Pflichtschritt</Label>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          ) : (
+            <p className="text-muted-foreground text-center py-8">
+              Keine Unterschritte vorhanden. Klicken Sie auf "Unterschritt hinzufügen", um einen neuen zu erstellen.
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Workflow Navigation */}
       <Card>
         <CardHeader>
@@ -197,7 +337,7 @@ export function WorkflowStepEditor({ step, allSteps, onSave, onCancel }: Workflo
               {editedStep.nextStepConditions.map((condition, index) => (
                 <Card key={index} className="p-4">
                   <div className="flex items-center justify-between mb-3">
-                    <Badge variant="outline">Verzweigung {index + 1}</Badge>
+                    <span className="text-xs px-2 py-1 bg-secondary text-secondary-foreground rounded">Verzweigung {index + 1}</span>
                     <Button
                       onClick={() => removeCondition(index)}
                       size="sm"
@@ -259,7 +399,7 @@ export function WorkflowStepEditor({ step, allSteps, onSave, onCancel }: Workflo
           Abbrechen
         </Button>
         <Button onClick={handleSave} className="bg-gradient-primary">
-          <Save className="w-4 h-4 mr-2" />
+          <Settings className="w-4 h-4 mr-2" />
           Speichern
         </Button>
       </div>
