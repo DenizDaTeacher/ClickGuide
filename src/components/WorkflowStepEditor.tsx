@@ -335,11 +335,11 @@ export function WorkflowStepEditor({ step, allSteps, onSave, onCancel }: Workflo
 
             <div className="flex items-center space-x-2">
               <Switch
-                id="isStartStep"
+                id="isOptional"
                 checked={editedStep.isStartStep}
                 onCheckedChange={(checked) => setEditedStep({ ...editedStep, isStartStep: checked })}
               />
-              <Label htmlFor="isStartStep">Startschritt</Label>
+              <Label htmlFor="isOptional">Optionaler Schritt</Label>
             </div>
 
             <div className="flex items-center space-x-2">
@@ -684,7 +684,17 @@ export function WorkflowStepEditor({ step, allSteps, onSave, onCancel }: Workflo
                       <div className={`mt-2 p-3 rounded-lg border ${
                         button.statusBackgroundColor === 'default' || !button.statusBackgroundColor 
                           ? 'bg-primary/10 border-primary/20' 
-                          : `${button.statusBackgroundColor} border-current`
+                          : (() => {
+                              const colorClass = button.statusBackgroundColor;
+                              if (colorClass.includes('blue')) return 'bg-blue-500/10 border-blue-500/20';
+                              if (colorClass.includes('green')) return 'bg-green-500/10 border-green-500/20';
+                              if (colorClass.includes('yellow')) return 'bg-yellow-500/10 border-yellow-500/20';
+                              if (colorClass.includes('red')) return 'bg-red-500/10 border-red-500/20';
+                              if (colorClass.includes('purple')) return 'bg-purple-500/10 border-purple-500/20';
+                              if (colorClass.includes('pink')) return 'bg-pink-500/10 border-pink-500/20';
+                              if (colorClass.includes('gray')) return 'bg-gray-500/10 border-gray-500/20';
+                              return 'bg-primary/10 border-primary/20';
+                            })()
                       }`}>
                         <div className="flex items-center gap-2">
                           {button.statusIcon && <span className="text-base">{button.statusIcon}</span>}

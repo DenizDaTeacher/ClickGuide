@@ -357,14 +357,23 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
                   const buttons = currentStep?.actionButtons || [];
                   const messageButton = buttons.find(button => button.statusMessage === message);
                   
+                  // Create transparent background based on the button's background color
+                  let transparentBg = 'bg-primary/10 border-primary/20';
+                  if (messageButton?.statusBackgroundColor && messageButton.statusBackgroundColor !== 'default') {
+                    const colorClass = messageButton.statusBackgroundColor;
+                    if (colorClass.includes('blue')) transparentBg = 'bg-blue-500/10 border-blue-500/20';
+                    else if (colorClass.includes('green')) transparentBg = 'bg-green-500/10 border-green-500/20';
+                    else if (colorClass.includes('yellow')) transparentBg = 'bg-yellow-500/10 border-yellow-500/20';
+                    else if (colorClass.includes('red')) transparentBg = 'bg-red-500/10 border-red-500/20';
+                    else if (colorClass.includes('purple')) transparentBg = 'bg-purple-500/10 border-purple-500/20';
+                    else if (colorClass.includes('pink')) transparentBg = 'bg-pink-500/10 border-pink-500/20';
+                    else if (colorClass.includes('gray')) transparentBg = 'bg-gray-500/10 border-gray-500/20';
+                  }
+                  
                   return (
                     <div 
                       key={index} 
-                      className={`p-3 rounded-lg border ${
-                        messageButton?.statusBackgroundColor && messageButton.statusBackgroundColor !== 'default'
-                          ? `${messageButton.statusBackgroundColor} border-current`
-                          : 'bg-primary/10 border-primary/20'
-                      }`}
+                      className={`p-3 rounded-lg border ${transparentBg}`}
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex items-center gap-2">
