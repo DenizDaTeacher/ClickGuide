@@ -23,6 +23,8 @@ export type Database = {
           id: string
           label: string
           name: string
+          status_background_color: string | null
+          status_icon: string | null
           status_message: string | null
           updated_at: string
           variant: string
@@ -35,6 +37,8 @@ export type Database = {
           id?: string
           label: string
           name: string
+          status_background_color?: string | null
+          status_icon?: string | null
           status_message?: string | null
           updated_at?: string
           variant?: string
@@ -47,6 +51,8 @@ export type Database = {
           id?: string
           label?: string
           name?: string
+          status_background_color?: string | null
+          status_icon?: string | null
           status_message?: string | null
           updated_at?: string
           variant?: string

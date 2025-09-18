@@ -455,8 +455,8 @@ export function useCallSteps() {
         actionType: (template.action_type || 'custom') as ButtonTemplate['actionType'], 
         statusMessage: template.status_message || undefined,
         backgroundColor: template.background_color || undefined,
-        statusIcon: template.status_icon || undefined,
-        statusBackgroundColor: template.status_background_color || undefined
+        statusIcon: (template as any).status_icon || undefined,
+        statusBackgroundColor: (template as any).status_background_color || undefined
       }));
       
       setButtonTemplates(templates);
@@ -495,8 +495,8 @@ export function useCallSteps() {
         actionType: (data.action_type || 'custom') as ButtonTemplate['actionType'],
         statusMessage: data.status_message || undefined,
         backgroundColor: data.background_color || undefined,
-        statusIcon: data.status_icon || undefined,
-        statusBackgroundColor: data.status_background_color || undefined
+        statusIcon: (data as any).status_icon || undefined,
+        statusBackgroundColor: (data as any).status_background_color || undefined
       };
       
       setButtonTemplates(prev => [...prev, newTemplate]);
