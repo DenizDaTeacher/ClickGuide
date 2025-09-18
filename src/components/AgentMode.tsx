@@ -328,14 +328,11 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
             <Card className="shadow-card">
               <CardHeader>
                 <CardTitle className="text-lg flex items-center">
-                  {currentDisplayStep?.statusIcon && <span className="mr-2">{currentDisplayStep.statusIcon}</span>}
                   <Shield className="w-5 h-5 mr-2" />
                   Status Übersicht
                 </CardTitle>
               </CardHeader>
-              <CardContent 
-                className={`space-y-4 ${currentDisplayStep?.statusBackgroundColor || ''}`}
-              >
+              <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
                   <span className="text-sm">Pflichtschritte:</span>
                   <Badge variant={canProceed ? "default" : "destructive"}>
@@ -355,23 +352,41 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
                 )}
                 
                 {/* Custom status messages from action buttons */}
-                {statusMessages.map((message, index) => (
-                  <div key={index} className="p-3 bg-primary/10 border border-primary/20 rounded-lg">
-                    <div className="flex items-start justify-between">
-                      <p className="text-sm text-primary font-medium pr-2">
-                        {message}
-                      </p>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setStatusMessages(prev => prev.filter((_, i) => i !== index))}
-                        className="h-6 w-6 p-0 text-primary/60 hover:text-primary"
-                      >
-                        <X className="w-3 h-3" />
-                      </Button>
+                {statusMessages.map((message, index) => {
+                  // Find the button that created this status message to get styling
+                  const buttons = currentStep?.actionButtons || [];
+                  const messageButton = buttons.find(button => button.statusMessage === message);
+                  
+                  return (
+                    <div 
+                      key={index} 
+                      className={`p-3 rounded-lg border ${
+                        messageButton?.statusBackgroundColor && messageButton.statusBackgroundColor !== 'default'
+                          ? `${messageButton.statusBackgroundColor} border-current`
+                          : 'bg-primary/10 border-primary/20'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-2">
+                          {messageButton?.statusIcon && (
+                            <span className="text-base">{messageButton.statusIcon}</span>
+                          )}
+                          <p className="text-sm font-medium pr-2">
+                            {message}
+                          </p>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setStatusMessages(prev => prev.filter((_, i) => i !== index))}
+                          className="h-6 w-6 p-0 opacity-60 hover:opacity-100"
+                        >
+                          <X className="w-3 h-3" />
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
                 
                 {canProceed && completedRequiredSteps === requiredSteps.length && (
                   <div className="p-3 bg-success/10 border border-success/20 rounded-lg">

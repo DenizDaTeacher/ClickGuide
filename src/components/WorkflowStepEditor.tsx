@@ -314,39 +314,6 @@ export function WorkflowStepEditor({ step, allSteps, onSave, onCancel }: Workflo
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="stepType">Schritt-Typ</Label>
-              <Select
-                value={editedStep.stepType}
-                onValueChange={(value: CallStep['stepType']) => 
-                  setEditedStep({ ...editedStep, stepType: value })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="normal">Normal</SelectItem>
-                  <SelectItem value="decision">Entscheidung</SelectItem>
-                  <SelectItem value="condition">Bedingung</SelectItem>
-                  <SelectItem value="sub_step">Unterschritt</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            {editedStep.stepType === 'condition' && (
-              <div>
-                <Label htmlFor="conditionLabel">Bedingungstext</Label>
-                <Input
-                  id="conditionLabel"
-                  value={editedStep.conditionLabel || ""}
-                  onChange={(e) => setEditedStep({ ...editedStep, conditionLabel: e.target.value })}
-                  placeholder="z.B. 'Was ist das Kundenanliegen?'"
-                />
-              </div>
-            )}
-          </div>
         </CardContent>
       </Card>
 
@@ -471,82 +438,6 @@ export function WorkflowStepEditor({ step, allSteps, onSave, onCancel }: Workflo
         </CardContent>
       </Card>
 
-      {/* Workflow Navigation */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Workflow-Navigation</CardTitle>
-            <Button onClick={addCondition} size="sm" variant="outline">
-              <Plus className="w-4 h-4 mr-2" />
-              Verzweigung hinzufügen
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {editedStep.nextStepConditions.length === 0 ? (
-            <p className="text-muted-foreground text-sm">
-              Keine Verzweigungen konfiguriert. Fügen Sie Bedingungen hinzu um verschiedene Pfade zu erstellen.
-            </p>
-          ) : (
-            <div className="space-y-4">
-              {editedStep.nextStepConditions.map((condition, index) => (
-                <Card key={index} className="p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-xs px-2 py-1 bg-secondary text-secondary-foreground rounded">Verzweigung {index + 1}</span>
-                    <Button
-                      onClick={() => removeCondition(index)}
-                      size="sm"
-                      variant="outline"
-                      className="text-destructive hover:text-destructive"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <div>
-                      <Label>Bedingungstext</Label>
-                      <Input
-                        value={condition.label}
-                        onChange={(e) => updateCondition(index, 'label', e.target.value)}
-                        placeholder="z.B. 'Technische Anfrage'"
-                      />
-                    </div>
-                    
-                    <div>
-                      <Label>Bedingung</Label>
-                      <Input
-                        value={condition.condition}
-                        onChange={(e) => updateCondition(index, 'condition', e.target.value)}
-                        placeholder="Logische Bedingung (optional)"
-                      />
-                    </div>
-                    
-                    <div>
-                      <Label>Nächster Schritt</Label>
-                      <Select
-                        value={condition.nextStepId}
-                        onValueChange={(value) => updateCondition(index, 'nextStepId', value)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Schritt auswählen" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {availableNextSteps.map((nextStep) => (
-                            <SelectItem key={nextStep.id} value={nextStep.id}>
-                              {nextStep.title}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                </Card>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
 
       {/* Action Buttons Configuration */}
       <Card>
@@ -786,14 +677,20 @@ export function WorkflowStepEditor({ step, allSteps, onSave, onCancel }: Workflo
                     </div>
                   </div>
 
-                  {/* Status Vorschau nur für Buttons mit actionType 'custom' */}
-                  {button.actionType === 'custom' && (
+                   {/* Status Vorschau für alle Buttons mit statusMessage */}
+                  {button.statusMessage && (
                     <div className="bg-muted p-3 rounded-md">
-                      <Label className="text-sm font-medium">Status-Vorschau für benutzerdefinierten Button:</Label>
-                      <div className={`mt-2 p-2 rounded border ${button.statusBackgroundColor === 'default' || !button.statusBackgroundColor ? 'bg-background' : button.statusBackgroundColor}`}>
+                      <Label className="text-sm font-medium">Status-Vorschau:</Label>
+                      <div className={`mt-2 p-3 rounded-lg border ${
+                        button.statusBackgroundColor === 'default' || !button.statusBackgroundColor 
+                          ? 'bg-primary/10 border-primary/20' 
+                          : `${button.statusBackgroundColor} border-current`
+                      }`}>
                         <div className="flex items-center gap-2">
-                          {button.statusIcon && <span>{button.statusIcon}</span>}
-                          <span className="font-medium">{button.statusMessage || "Status-Nachricht wird hier angezeigt"}</span>
+                          {button.statusIcon && <span className="text-base">{button.statusIcon}</span>}
+                          <span className="font-medium text-sm">
+                            {button.statusMessage || "Status-Nachricht wird hier angezeigt"}
+                          </span>
                         </div>
                       </div>
                     </div>
