@@ -12,6 +12,8 @@ export interface ActionButton {
   icon?: string;
   enabled?: boolean;
   templateName?: string;
+  statusIcon?: string;
+  statusBackgroundColor?: string;
 }
 
 export interface ButtonTemplate {
@@ -23,6 +25,8 @@ export interface ButtonTemplate {
   actionType: 'complete' | 'fail' | 'info' | 'custom';
   statusMessage?: string;
   backgroundColor?: string;
+  statusIcon?: string;
+  statusBackgroundColor?: string;
 }
 
 export interface CallStep {
@@ -450,7 +454,9 @@ export function useCallSteps() {
         icon: template.icon || undefined,
         actionType: (template.action_type || 'custom') as ButtonTemplate['actionType'], 
         statusMessage: template.status_message || undefined,
-        backgroundColor: template.background_color || undefined
+        backgroundColor: template.background_color || undefined,
+        statusIcon: template.status_icon || undefined,
+        statusBackgroundColor: template.status_background_color || undefined
       }));
       
       setButtonTemplates(templates);
@@ -471,7 +477,9 @@ export function useCallSteps() {
           icon: template.icon,
           action_type: template.actionType,
           status_message: template.statusMessage,
-          background_color: template.backgroundColor
+          background_color: template.backgroundColor,
+          status_icon: template.statusIcon,
+          status_background_color: template.statusBackgroundColor
         }])
         .select()
         .single();
@@ -486,7 +494,9 @@ export function useCallSteps() {
         icon: data.icon || undefined,
         actionType: (data.action_type || 'custom') as ButtonTemplate['actionType'],
         statusMessage: data.status_message || undefined,
-        backgroundColor: data.background_color || undefined
+        backgroundColor: data.background_color || undefined,
+        statusIcon: data.status_icon || undefined,
+        statusBackgroundColor: data.status_background_color || undefined
       };
       
       setButtonTemplates(prev => [...prev, newTemplate]);

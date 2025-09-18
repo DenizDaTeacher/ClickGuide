@@ -89,6 +89,8 @@ export function WorkflowStepEditor({ step, allSteps, onSave, onCancel }: Workflo
           actionType: template.actionType,
           icon: template.icon,
           statusMessage: template.statusMessage,
+          statusIcon: template.statusIcon,
+          statusBackgroundColor: template.statusBackgroundColor,
           enabled: true,
           templateName: template.name
         };
@@ -155,14 +157,16 @@ export function WorkflowStepEditor({ step, allSteps, onSave, onCancel }: Workflo
     }
 
     try {
-      await saveButtonTemplate({
-        name: newTemplateName,
-        label: button.label,
-        variant: button.variant,
-        icon: button.icon,
-        actionType: button.actionType,
-        statusMessage: button.statusMessage
-      });
+          await saveButtonTemplate({
+            name: newTemplateName,
+            label: button.label,
+            variant: button.variant,
+            icon: button.icon,
+            actionType: button.actionType,
+            statusMessage: button.statusMessage,
+            statusIcon: button.statusIcon,
+            statusBackgroundColor: button.statusBackgroundColor
+          });
       
       // Update button with template name
       const updatedButtons = editedStep.actionButtons?.map(b => 
@@ -383,76 +387,6 @@ export function WorkflowStepEditor({ step, allSteps, onSave, onCancel }: Workflo
         </CardContent>
       </Card>
 
-      {/* Status-Übersicht Konfiguration */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Status-Übersicht</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Status-Icon</Label>
-              <div className="flex gap-2">
-                <Input
-                  value={editedStep.statusIcon || ''}
-                  onChange={(e) => setEditedStep({...editedStep, statusIcon: e.target.value})}
-                  placeholder="Emoji auswählen..."
-                  className="flex-1"
-                />
-              </div>
-              <div className="grid grid-cols-10 gap-1 mt-2">
-                {commonEmojis.map((emoji) => (
-                  <Button
-                    key={emoji}
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 w-8 p-0 text-base hover:bg-accent"
-                    onClick={() => setEditedStep({...editedStep, statusIcon: emoji})}
-                  >
-                    {emoji}
-                  </Button>
-                ))}
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              <Label>Hintergrundfarbe</Label>
-              <Select
-                value={editedStep.statusBackgroundColor || 'default'}
-                onValueChange={(value) => setEditedStep({...editedStep, statusBackgroundColor: value === 'default' ? '' : value})}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Farbe auswählen" />
-                </SelectTrigger>
-                 <SelectContent>
-                   {statusColors.map((color) => (
-                     <SelectItem key={color.value} value={color.value}>
-                       <div className="flex items-center gap-2">
-                         <div 
-                           className={`w-4 h-4 rounded ${color.value === 'default' ? 'bg-muted' : color.value}`}
-                         />
-                         {color.name}
-                       </div>
-                     </SelectItem>
-                   ))}
-                 </SelectContent>
-              </Select>
-            </div>
-          </div>
-          
-          {/* Status Preview */}
-          <div className="bg-muted p-3 rounded-md">
-            <Label className="text-sm font-medium">Vorschau:</Label>
-            <div className={`mt-2 p-2 rounded border ${editedStep.statusBackgroundColor === 'default' || !editedStep.statusBackgroundColor ? 'bg-background' : editedStep.statusBackgroundColor}`}>
-              <div className="flex items-center gap-2">
-                {editedStep.statusIcon && <span>{editedStep.statusIcon}</span>}
-                <span className="font-medium">{editedStep.title || "Schritt Titel"}</span>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Sub-Steps Section */}
       <Card>
@@ -789,7 +723,6 @@ export function WorkflowStepEditor({ step, allSteps, onSave, onCancel }: Workflo
                       ))}
                     </div>
                   </div>
-                  
                   <div className="space-y-2">
                     <Label>Status-Nachricht</Label>
                     <Textarea
@@ -799,6 +732,72 @@ export function WorkflowStepEditor({ step, allSteps, onSave, onCancel }: Workflo
                       rows={2}
                     />
                   </div>
+
+                  {/* Status-Darstellung Konfiguration */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Status-Icon</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          value={button.statusIcon || ''}
+                          onChange={(e) => updateActionButton(index, 'statusIcon', e.target.value)}
+                          placeholder="Emoji auswählen..."
+                          className="flex-1"
+                        />
+                      </div>
+                      <div className="grid grid-cols-10 gap-1 mt-2">
+                        {commonEmojis.map((emoji) => (
+                          <Button
+                            key={emoji}
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0 text-base hover:bg-accent"
+                            onClick={() => updateActionButton(index, 'statusIcon', emoji)}
+                          >
+                            {emoji}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label>Status-Hintergrundfarbe</Label>
+                      <Select
+                        value={button.statusBackgroundColor || 'default'}
+                        onValueChange={(value) => updateActionButton(index, 'statusBackgroundColor', value === 'default' ? '' : value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Farbe auswählen" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {statusColors.map((color) => (
+                            <SelectItem key={color.value} value={color.value}>
+                              <div className="flex items-center gap-2">
+                                <div 
+                                  className={`w-4 h-4 rounded ${color.value === 'default' ? 'bg-muted' : color.value}`}
+                                />
+                                {color.name}
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {/* Status Vorschau nur für Buttons mit actionType 'custom' */}
+                  {button.actionType === 'custom' && (
+                    <div className="bg-muted p-3 rounded-md">
+                      <Label className="text-sm font-medium">Status-Vorschau für benutzerdefinierten Button:</Label>
+                      <div className={`mt-2 p-2 rounded border ${button.statusBackgroundColor === 'default' || !button.statusBackgroundColor ? 'bg-background' : button.statusBackgroundColor}`}>
+                        <div className="flex items-center gap-2">
+                          {button.statusIcon && <span>{button.statusIcon}</span>}
+                          <span className="font-medium">{button.statusMessage || "Status-Nachricht wird hier angezeigt"}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   
                   {/* Save as Template Dialog */}
                   {saveAsTemplate && currentButtonIndex === index && (
