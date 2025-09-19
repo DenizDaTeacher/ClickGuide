@@ -323,7 +323,7 @@ export function WorkflowStepEditor({ step, allSteps, onSave, onCancel }: Workflo
           <CardTitle>Schritt-Einstellungen</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-4 flex-wrap">
             <div className="flex items-center space-x-2">
               <Switch
                 id="required"
@@ -349,6 +349,47 @@ export function WorkflowStepEditor({ step, allSteps, onSave, onCancel }: Workflo
                 onCheckedChange={(checked) => setEditedStep({ ...editedStep, isEndStep: checked })}
               />
               <Label htmlFor="isEndStep">Endschritt</Label>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="hasAuthentication"
+                checked={editedStep.actionButtons?.some(button => button.templateName === 'Authentifizierung') || false}
+                onCheckedChange={(checked) => {
+                  const hasAuthButton = editedStep.actionButtons?.some(button => button.templateName === 'Authentifizierung');
+                  
+                  if (checked && !hasAuthButton) {
+                    // Add authentication button from template
+                    const authTemplate = buttonTemplates.find(t => t.name === 'Authentifizierung');
+                    if (authTemplate) {
+                      const newButton: ActionButton = {
+                        id: crypto.randomUUID(),
+                        label: authTemplate.label,
+                        variant: authTemplate.variant,
+                        actionType: authTemplate.actionType,
+                        icon: authTemplate.icon,
+                        statusMessage: authTemplate.statusMessage,
+                        statusIcon: authTemplate.statusIcon,
+                        statusBackgroundColor: authTemplate.statusBackgroundColor,
+                        enabled: true,
+                        templateName: authTemplate.name
+                      };
+                      setEditedStep({
+                        ...editedStep,
+                        actionButtons: [...(editedStep.actionButtons || []), newButton]
+                      });
+                    }
+                  } else if (!checked && hasAuthButton) {
+                    // Remove authentication button
+                    const filteredButtons = editedStep.actionButtons?.filter(button => button.templateName !== 'Authentifizierung') || [];
+                    setEditedStep({
+                      ...editedStep,
+                      actionButtons: filteredButtons
+                    });
+                  }
+                }}
+              />
+              <Label htmlFor="hasAuthentication">Authentifizierung</Label>
             </div>
           </div>
         </CardContent>
