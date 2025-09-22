@@ -26,6 +26,7 @@ export type Database = {
           status_background_color: string | null
           status_icon: string | null
           status_message: string | null
+          tenant_id: string
           updated_at: string
           variant: string
         }
@@ -40,6 +41,7 @@ export type Database = {
           status_background_color?: string | null
           status_icon?: string | null
           status_message?: string | null
+          tenant_id?: string
           updated_at?: string
           variant?: string
         }
@@ -54,6 +56,7 @@ export type Database = {
           status_background_color?: string | null
           status_icon?: string | null
           status_message?: string | null
+          tenant_id?: string
           updated_at?: string
           variant?: string
         }
@@ -80,6 +83,7 @@ export type Database = {
           status_icon: string | null
           step_id: string
           step_type: string
+          tenant_id: string
           title: string
           updated_at: string
           workflow_name: string
@@ -104,6 +108,7 @@ export type Database = {
           status_icon?: string | null
           step_id: string
           step_type?: string
+          tenant_id?: string
           title: string
           updated_at?: string
           workflow_name?: string
@@ -128,6 +133,7 @@ export type Database = {
           status_icon?: string | null
           step_id?: string
           step_type?: string
+          tenant_id?: string
           title?: string
           updated_at?: string
           workflow_name?: string
@@ -446,6 +452,33 @@ export type Database = {
           welcome_bonus_received?: boolean
           work_email?: string | null
           workplace?: string | null
+        }
+        Relationships: []
+      }
+      tenants: {
+        Row: {
+          created_at: string | null
+          domain: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          domain?: string | null
+          id: string
+          is_active?: boolean | null
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          domain?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          updated_at?: string | null
         }
         Relationships: []
       }
