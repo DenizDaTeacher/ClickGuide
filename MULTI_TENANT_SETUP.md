@@ -26,9 +26,9 @@ Das System ist bereits mit folgenden Teams konfiguriert:
 | Team | Domain | Beispiel-URL |
 |------|--------|-------------|
 | Standard | `default.localhost` | Für Entwicklung/Tests |
-| Kundenservice | `kundenservice.clickguide.com` | Team-spezifische Domain |
-| Vertrieb | `vertrieb.clickguide.com` | Team-spezifische Domain |  
-| Support | `support.clickguide.com` | Team-spezifische Domain |
+| Team 1 | `team1.clickguide.com` | Team-spezifische Domain |
+| Team 2 | `team2.clickguide.com` | Team-spezifische Domain |  
+| Support Team | `support.clickguide.com` | Team-spezifische Domain (inaktiv) |
 
 ### Custom Domains einrichten
 
@@ -56,22 +56,22 @@ Das System ist bereits mit folgenden Teams konfiguriert:
 Für sofortige Tests ohne Domain-Setup:
 
 ```
-https://ihr-projekt.lovableproject.com/?tenant=team-kundenservice
-https://ihr-projekt.lovableproject.com/?tenant=team-vertrieb  
-https://ihr-projekt.lovableproject.com/?tenant=team-support
+https://ihr-projekt.lovableproject.com/?tenant=team-kundenservice  (Team 1)
+https://ihr-projekt.lovableproject.com/?tenant=team-vertrieb       (Team 2)
+https://ihr-projekt.lovableproject.com/?tenant=team-support        (Support Team)
 ```
 
 ## Nutzung für Teams
 
-### Team A (Kundenservice)
-- **URL**: `kundenservice.clickguide.com`
+### Team 1
+- **URL**: `team1.clickguide.com`
 - **Funktionen**: Eigene Gesprächslisten, Button-Templates, komplett getrennte Daten
 
-### Team B (Vertrieb)  
-- **URL**: `vertrieb.clickguide.com`
-- **Funktionen**: Eigene Verkaufs-Workflows, unabhängig von anderen Teams
+### Team 2
+- **URL**: `team2.clickguide.com`
+- **Funktionen**: Eigene Workflows, unabhängig von anderen Teams
 
-### Team C (Support)
+### Support Team (inaktiv)
 - **URL**: `support.clickguide.com`  
 - **Funktionen**: Support-spezifische Abläufe und Vorlagen
 
@@ -111,9 +111,9 @@ https://ihr-projekt.lovableproject.com/?tenant=team-support
    - Team-Mitarbeiter einweisen
 
 2. **Tägliche Nutzung:**
-   - Team A öffnet `kundenservice.clickguide.com`
+   - Team 1 öffnet `team1.clickguide.com`
    - Arbeitet mit eigenen Listen
-   - Team B arbeitet parallel auf `vertrieb.clickguide.com`
+   - Team 2 arbeitet parallel auf `team2.clickguide.com`
    - Keine Überschneidungen oder Konflikte
 
 3. **Administration:**

@@ -30,8 +30,8 @@ export function useTenant() {
     
     // Map domains to tenant IDs
     const domainMapping: Record<string, string> = {
-      'kundenservice.clickguide.com': 'team-kundenservice',
-      'vertrieb.clickguide.com': 'team-vertrieb', 
+      'team1.clickguide.com': 'team-kundenservice',
+      'team2.clickguide.com': 'team-vertrieb', 
       'support.clickguide.com': 'team-support',
       'localhost': 'default',
       '127.0.0.1': 'default'

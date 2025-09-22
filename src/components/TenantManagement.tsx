@@ -321,7 +321,7 @@ export function TenantManagement() {
         <div className="mt-6 p-4 bg-muted rounded-lg">
           <h4 className="font-medium mb-2">💡 Domain-Setup Hinweise:</h4>
           <ul className="text-sm text-muted-foreground space-y-1">
-            <li>• Teams können über URL-Parameter aufgerufen werden: <code>?tenant=team-id</code></li>
+            <li>• Teams können über URL-Parameter aufgerufen werden: <code>?tenant=team-kundenservice</code></li>
             <li>• Für eigene Domains: DNS A-Record auf 185.158.133.1 setzen</li>
             <li>• Subdomains werden automatisch erkannt: <code>team-name.lovableproject.com</code></li>
             <li>• Details siehe <code>MULTI_TENANT_SETUP.md</code> Datei</li>
