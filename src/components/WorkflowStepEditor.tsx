@@ -199,6 +199,9 @@ export function WorkflowStepEditor({ step, allSteps, onSave, onCancel }: Workflo
     // Status & Feedback Icons
     '✅', '❌', '⚠️', '❗', 'ℹ️', '🚫', '🛑', '🔄', '✨', '💯',
     
+    // White/Light Symbols (for dark backgrounds)
+    '⚠', '!', '?', '✓', '✗', '◉', '○', '●', '▲', '▼',
+    
     // Colored Circles
     '🔴', '🟠', '🟡', '🟢', '🔵', '🟣', '⚪', '⚫', '🟤', '🔘',
     
