@@ -121,22 +121,35 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
   };
 
   const handleActionButton = (button: ActionButton) => {
-    if (!currentStep) return;
+    console.log('🔴 Button clicked:', button);
+    if (!currentStep) {
+      console.log('❌ No current step');
+      return;
+    }
+    
+    console.log('🔴 Button actionType:', button.actionType);
+    console.log('🔴 Button statusMessage:', button.statusMessage);
     
     // Handle different action types
     switch (button.actionType) {
       case 'complete':
+        console.log('✅ Completing step via button');
         handleStepComplete();
         break;
       case 'fail':
+        console.log('❌ Setting authentication failed');
         setAuthenticationFailed(true);
         if (button.statusMessage) {
+          console.log('📝 Adding status message:', button.statusMessage);
           setStatusMessages(prev => [...prev, button.statusMessage!]);
         }
         break;
       case 'info':
       case 'custom':
+      default:
+        console.log('ℹ️ Info/custom action, adding status message');
         if (button.statusMessage) {
+          console.log('📝 Adding status message:', button.statusMessage);
           setStatusMessages(prev => [...prev, button.statusMessage!]);
         }
         break;
