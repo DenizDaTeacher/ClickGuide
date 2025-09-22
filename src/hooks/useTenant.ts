@@ -14,53 +14,24 @@ export function useTenant() {
   const [currentTenant, setCurrentTenant] = useState<Tenant | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Get tenant ID from various sources (domain, URL params, localStorage)
+  // Get tenant ID from localStorage (project-based system)
   const getTenantId = (): string => {
-    console.log('🏢 DEBUG: Getting tenant ID...');
-    console.log('🏢 DEBUG: Current URL:', window.location.href);
-    console.log('🏢 DEBUG: Search params:', window.location.search);
-    
-    // 1. Check URL parameters first (e.g., ?tenant=team-kundenservice)
-    const urlParams = new URLSearchParams(window.location.search);
-    const tenantParam = urlParams.get('tenant');
-    console.log('🏢 DEBUG: Tenant param from URL:', tenantParam);
-    
-    if (tenantParam) {
-      console.log('🏢 Tenant from URL param:', tenantParam);
-      return tenantParam;
+    // Check localStorage for selected project
+    const savedProject = localStorage.getItem('selectedProject');
+    if (savedProject) {
+      console.log('🏢 Using saved project:', savedProject);
+      return savedProject;
     }
 
-    // 2. Check domain mapping
-    const hostname = window.location.hostname;
-    console.log('🏢 Current hostname:', hostname);
-    
-    // Map domains to tenant IDs
-    const domainMapping: Record<string, string> = {
-      'team1.clickguide.com': 'team-kundenservice',
-      'team2.clickguide.com': 'team-vertrieb', 
-      'support.clickguide.com': 'team-support',
-      'localhost': 'default',
-      '127.0.0.1': 'default'
-    };
-
-    const tenantFromDomain = domainMapping[hostname];
-    if (tenantFromDomain) {
-      console.log('🏢 Tenant from domain:', tenantFromDomain);
-      return tenantFromDomain;
-    }
-
-    // 3. Check for subdomain pattern (e.g., team-name.lovableproject.com)
-    if (hostname.includes('.lovableproject.com')) {
-      const subdomain = hostname.split('.')[0];
-      if (subdomain.startsWith('team-') || subdomain === 'default') {
-        console.log('🏢 Tenant from subdomain:', subdomain);
-        return subdomain;
-      }
-    }
-
-    // 4. Fallback to default
-    console.log('🏢 Using default tenant');
+    // Fallback to default if no project selected
+    console.log('🏢 No project selected, using default');
     return 'default';
+  };
+
+  // Set tenant ID (when user selects a project)
+  const setTenantId = (projectName: string) => {
+    localStorage.setItem('selectedProject', projectName);
+    loadTenant(projectName);
   };
 
   // Load tenant information
@@ -120,6 +91,7 @@ export function useTenant() {
     tenant: currentTenant,
     tenantId: currentTenant?.id || 'default',
     loading,
+    setProject: setTenantId,
     refreshTenant: () => {
       const tenantId = getTenantId();
       loadTenant(tenantId);
