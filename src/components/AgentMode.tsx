@@ -243,7 +243,7 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
                     <User className="w-4 h-4 mr-2" />
                     Was zu tun ist:
                   </h3>
-                  <p className="text-muted-foreground">{currentStep.description}</p>
+                  <p className="text-muted-foreground">{currentDisplayStep.description}</p>
                 </div>
                 
                 <div className="bg-gradient-card p-4 rounded-lg">
@@ -251,7 +251,7 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
                     <FileText className="w-4 h-4 mr-2" />
                     Kommunikationsvorlage:
                   </h3>
-                  <p className="italic text-foreground">{currentStep.communication}</p>
+                  <p className="italic text-foreground">{currentDisplayStep.communication}</p>
                 </div>
 
                 {/* Branch Options */}
@@ -310,7 +310,10 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
                     {currentStep.stepType === 'decision' && (!currentStep.actionButtons || currentStep.actionButtons.length === 0) && (
                       <Button 
                         variant="destructive"
-                        onClick={handleAuthenticationFailure}
+                        onClick={() => {
+                          handleAuthenticationFailure();
+                          setStatusMessages(prev => [...prev, "Problem bei der Authentifizierung aufgetreten"]);
+                        }}
                       >
                         <AlertCircle className="w-4 h-4 mr-2" />
                         Problem aufgetreten
