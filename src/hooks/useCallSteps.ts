@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useTenant } from '@/hooks/useTenant';
 import type { Json } from '@/integrations/supabase/types';
 
 export interface ActionButton {
@@ -66,13 +67,18 @@ export function useCallSteps() {
   const [workflows, setWorkflows] = useState<string[]>([]);
   const [buttonTemplates, setButtonTemplates] = useState<ButtonTemplate[]>([]);
   const { toast } = useToast();
+  const { tenantId } = useTenant();
+
+  console.log('🏢 useCallSteps initialized with tenant:', tenantId);
 
   // Load available workflows
   const loadWorkflows = async () => {
     try {
+      console.log('📁 Loading workflows for tenant:', tenantId);
       const { data, error } = await supabase
         .from('call_steps')
         .select('workflow_name')
+        .eq('tenant_id', tenantId)
         .not('workflow_name', 'is', null);
       
       if (error) throw error;
@@ -98,10 +104,13 @@ export function useCallSteps() {
     const targetWorkflow = workflowName || currentWorkflow;
     try {
       setLoading(true);
+      console.log('📊 Loading steps for workflow:', targetWorkflow, 'tenant:', tenantId);
+      
       const { data, error } = await supabase
         .from('call_steps')
         .select('*')
         .eq('workflow_name', targetWorkflow)
+        .eq('tenant_id', tenantId)
         .order('sort_order', { ascending: true });
 
       if (error) {
@@ -212,7 +221,8 @@ export function useCallSteps() {
       const { error } = await supabase
         .from('call_steps')
         .delete()
-        .eq('workflow_name', name);
+        .eq('workflow_name', name)
+        .eq('tenant_id', tenantId);
       
       if (error) throw error;
       
@@ -328,6 +338,7 @@ export function useCallSteps() {
         is_end_step: processedStep.isEndStep,
         category: processedStep.category,
         workflow_name: currentWorkflow,
+        tenant_id: tenantId,
         status_background_color: processedStep.statusBackgroundColor,
         status_icon: processedStep.statusIcon
       };
@@ -399,6 +410,7 @@ export function useCallSteps() {
             is_end_step: false,
             category: subStep.category,
             workflow_name: currentWorkflow,
+            tenant_id: tenantId,
           };
           
           const { data: existingSubStep } = await supabase
@@ -454,7 +466,8 @@ export function useCallSteps() {
       const { error } = await supabase
         .from('call_steps')
         .delete()
-        .eq('step_id', stepId);
+        .eq('step_id', stepId)
+        .eq('tenant_id', tenantId);
 
       if (error) {
         console.error('Error deleting step:', error);
@@ -494,6 +507,7 @@ export function useCallSteps() {
           .from('call_steps')
           .update({ sort_order: index + 1 })
           .eq('step_id', step.id)
+          .eq('tenant_id', tenantId)
       );
 
       const results = await Promise.all(updatePromises);
@@ -535,9 +549,11 @@ export function useCallSteps() {
   // Load button templates
   const loadButtonTemplates = async () => {
     try {
+      console.log('🔘 Loading button templates for tenant:', tenantId);
       const { data, error } = await supabase
         .from('button_templates')
         .select('*')
+        .eq('tenant_id', tenantId)
         .order('name');
       
       if (error) throw error;
@@ -564,6 +580,7 @@ export function useCallSteps() {
   // Save button template
   const saveButtonTemplate = async (template: Omit<ButtonTemplate, 'id'>) => {
     try {
+      console.log('🔘 Saving button template for tenant:', tenantId, template);
       const { data, error } = await supabase
         .from('button_templates')
         .insert([{
@@ -575,7 +592,8 @@ export function useCallSteps() {
           status_message: template.statusMessage,
           background_color: template.backgroundColor,
           status_icon: template.statusIcon,
-          status_background_color: template.statusBackgroundColor
+          status_background_color: template.statusBackgroundColor,
+          tenant_id: tenantId
         }])
         .select()
         .single();
@@ -609,7 +627,8 @@ export function useCallSteps() {
       const { error } = await supabase
         .from('button_templates')
         .delete()
-        .eq('id', templateId);
+        .eq('id', templateId)
+        .eq('tenant_id', tenantId);
       
       if (error) throw error;
       setButtonTemplates(prev => prev.filter(t => t.id !== templateId));
@@ -619,11 +638,14 @@ export function useCallSteps() {
     }
   };
 
-  // Load workflows on mount
+  // Load workflows and templates when tenant changes
   useEffect(() => {
-    loadWorkflows();
-    loadButtonTemplates();
-  }, []);
+    if (tenantId) {
+      console.log('🏢 Tenant changed, reloading data for:', tenantId);
+      loadWorkflows();
+      loadButtonTemplates();
+    }
+  }, [tenantId]);
 
   // Ensure default template exists after loading templates
   useEffect(() => {
@@ -632,12 +654,13 @@ export function useCallSteps() {
     }
   }, [buttonTemplates]);
 
-  // Load steps when workflow changes
+  // Load steps when workflow or tenant changes
   useEffect(() => {
-    if (currentWorkflow) {
+    if (currentWorkflow && tenantId) {
+      console.log('📊 Workflow or tenant changed, loading steps:', currentWorkflow, tenantId);
       loadSteps();
     }
-  }, [currentWorkflow]);
+  }, [currentWorkflow, tenantId]);
 
   return {
     steps,
