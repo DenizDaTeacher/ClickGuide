@@ -6,23 +6,30 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CallStep, NextStepCondition, ActionButton, useCallSteps } from "@/hooks/useCallSteps";
+import { CallStep, NextStepCondition, ActionButton, ButtonTemplate } from "@/hooks/useCallSteps";
 import { Plus, Trash2, Settings, MousePointer, Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface WorkflowStepEditorProps {
-  step: CallStep;
-  allSteps: CallStep[];
+  step?: CallStep;
+  allSteps?: CallStep[];
   onSave: (step: CallStep) => void;
-  onCancel: () => void;
+  onCancel?: () => void;
+  buttonTemplates: ButtonTemplate[];
+  onSaveButtonTemplate: (template: Omit<ButtonTemplate, 'id'>) => Promise<ButtonTemplate>;
+  onDeleteButtonTemplate: (templateId: string) => Promise<void>;
 }
 
-export function WorkflowStepEditor({ step, allSteps, onSave, onCancel }: WorkflowStepEditorProps) {
-  const { 
-    buttonTemplates, 
-    saveButtonTemplate, 
-    deleteButtonTemplate 
-  } = useCallSteps();
+export function WorkflowStepEditor({ 
+  step, 
+  allSteps, 
+  onSave, 
+  onCancel,
+  buttonTemplates,
+  onSaveButtonTemplate,
+  onDeleteButtonTemplate
+}: WorkflowStepEditorProps) {
+  const { toast } = useToast();
 
   // Ensure step has default "Schritt abgeschlossen" button if no buttons exist
   const ensureDefaultButton = (stepData: CallStep): CallStep => {
@@ -32,15 +39,30 @@ export function WorkflowStepEditor({ step, allSteps, onSave, onCancel }: Workflo
         return {
           ...stepData,
           actionButtons: [{
-            id: crypto.randomUUID(),
+            id: `action-${Date.now()}`,
             label: defaultTemplate.label,
             variant: defaultTemplate.variant,
             actionType: defaultTemplate.actionType,
             statusMessage: defaultTemplate.statusMessage,
-            statusIcon: defaultTemplate.statusIcon,
-            statusBackgroundColor: defaultTemplate.statusBackgroundColor,
+            icon: defaultTemplate.icon,
             enabled: true,
-            templateName: defaultTemplate.name
+            templateName: defaultTemplate.name,
+            statusIcon: defaultTemplate.statusIcon,
+            statusBackgroundColor: defaultTemplate.statusBackgroundColor
+          }]
+        };
+      } else {
+        // Fallback default button
+        return {
+          ...stepData,
+          actionButtons: [{
+            id: `action-${Date.now()}`,
+            label: 'Schritt abgeschlossen',
+            variant: 'default' as const,
+            actionType: 'complete' as const,
+            statusMessage: 'Schritt wurde erfolgreich abgeschlossen.',
+            icon: '✓',
+            enabled: true
           }]
         };
       }
@@ -48,132 +70,98 @@ export function WorkflowStepEditor({ step, allSteps, onSave, onCancel }: Workflo
     return stepData;
   };
 
-  const [editedStep, setEditedStep] = useState<CallStep>(() => 
-    ensureDefaultButton({
-      ...step,
-      subSteps: step.subSteps || [],
-      category: step.category || "",
-      actionButtons: step.actionButtons || [],
-      statusBackgroundColor: step.statusBackgroundColor || "",
-      statusIcon: step.statusIcon || ""
-    })
-  );
-  
-  const [selectedTemplate, setSelectedTemplate] = useState<string>('');
-  const [newTemplateName, setNewTemplateName] = useState<string>('');
-  const [saveAsTemplate, setSaveAsTemplate] = useState<boolean>(false);
-  const [currentButtonIndex, setCurrentButtonIndex] = useState<number>(-1);
+  const [formData, setFormData] = useState<CallStep>(() => {
+    const initialData = step || {
+      id: `step-${Date.now()}`,
+      title: '',
+      description: '',
+      communication: '',
+      completed: false,
+      required: false,
+      parentStepId: undefined,
+      stepType: 'normal' as const,
+      conditionLabel: '',
+      nextStepConditions: [],
+      positionX: 0,
+      positionY: 0,
+      isStartStep: false,
+      isEndStep: false,
+      category: '',
+      subSteps: [],
+      sortOrder: allSteps ? allSteps.length + 1 : 1,
+      workflowName: 'Gesprächsschritte',
+      actionButtons: [],
+      statusBackgroundColor: '',
+      statusIcon: ''
+    };
+    
+    return ensureDefaultButton(initialData);
+  });
 
-  
-  const { toast } = useToast();
+  const [showButtonDialog, setShowButtonDialog] = useState(false);
+  const [editingButtonIndex, setEditingButtonIndex] = useState<number | null>(null);
+  const [buttonFormData, setButtonFormData] = useState<ActionButton>({
+    id: '',
+    label: '',
+    variant: 'default',
+    actionType: 'complete',
+    statusMessage: '',
+    icon: '',
+    enabled: true
+  });
+
+  const [newTemplateName, setNewTemplateName] = useState('');
+  const [showSaveTemplateDialog, setShowSaveTemplateDialog] = useState(false);
+  const [currentButtonForTemplate, setCurrentButtonForTemplate] = useState<ActionButton | null>(null);
+
+  const handleInputChange = (field: keyof CallStep, value: any) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
 
   const handleSave = () => {
-    if (editedStep.title && editedStep.description && editedStep.communication) {
-      onSave(editedStep);
-    }
+    const finalData = ensureDefaultButton(formData);
+    onSave(finalData);
   };
 
-  const addCondition = () => {
-    const newCondition: NextStepCondition = {
-      condition: "",
-      nextStepId: "",
-      label: "Neue Bedingung"
-    };
-    setEditedStep({
-      ...editedStep,
-      nextStepConditions: [...editedStep.nextStepConditions, newCondition]
+  const handleAddButton = () => {
+    setEditingButtonIndex(null);
+    setButtonFormData({
+      id: `action-${Date.now()}`,
+      label: '',
+      variant: 'default',
+      actionType: 'complete',
+      statusMessage: '',
+      icon: '',
+      enabled: true
     });
+    setShowButtonDialog(true);
   };
 
-  const removeCondition = (index: number) => {
-    const conditions = [...editedStep.nextStepConditions];
-    conditions.splice(index, 1);
-    setEditedStep({
-      ...editedStep,
-      nextStepConditions: conditions
-    });
+  const handleEditButton = (index: number) => {
+    setEditingButtonIndex(index);
+    setButtonFormData({ ...formData.actionButtons![index] });
+    setShowButtonDialog(true);
   };
 
-  const updateCondition = (index: number, field: keyof NextStepCondition, value: string) => {
-    const conditions = [...editedStep.nextStepConditions];
-    conditions[index] = { ...conditions[index], [field]: value };
-    setEditedStep({
-      ...editedStep,
-      nextStepConditions: conditions
-    });
-  };
-
-  // Add new action button
-  const addActionButton = () => {
-    if (selectedTemplate && buttonTemplates.length > 0) {
-      // Create button from template
-      const template = buttonTemplates.find(t => t.id === selectedTemplate);
-      if (template) {
-        const newButton: ActionButton = {
-          id: crypto.randomUUID(),
-          label: template.label,
-          variant: template.variant,
-          actionType: template.actionType,
-          icon: template.icon,
-          statusMessage: template.statusMessage,
-          statusIcon: template.statusIcon,
-          statusBackgroundColor: template.statusBackgroundColor,
-          enabled: true,
-          templateName: template.name
-        };
-        setEditedStep({
-          ...editedStep,
-          actionButtons: [...(editedStep.actionButtons || []), newButton]
-        });
-        setSelectedTemplate('');
-        return;
-      }
+  const handleSaveButton = () => {
+    const updatedButtons = [...(formData.actionButtons || [])];
+    
+    if (editingButtonIndex !== null) {
+      updatedButtons[editingButtonIndex] = buttonFormData;
+    } else {
+      updatedButtons.push(buttonFormData);
     }
     
-    // Create new custom button
-    const newButton: ActionButton = {
-      id: crypto.randomUUID(),
-      label: `Button ${(editedStep.actionButtons?.length || 0) + 1}`,
-      variant: 'default',
-      actionType: 'custom',
-      enabled: true,
-      templateName: `Button ${(editedStep.actionButtons?.length || 0) + 1}`
-    };
-    setEditedStep({
-      ...editedStep,
-      actionButtons: [...(editedStep.actionButtons || []), newButton]
-    });
+    setFormData(prev => ({ ...prev, actionButtons: updatedButtons }));
+    setShowButtonDialog(false);
   };
 
-  const toggleActionButton = (index: number) => {
-    const buttons = [...(editedStep.actionButtons || [])];
-    buttons[index] = { ...buttons[index], enabled: !buttons[index].enabled };
-    setEditedStep({
-      ...editedStep,
-      actionButtons: buttons
-    });
+  const handleDeleteButton = (index: number) => {
+    const updatedButtons = formData.actionButtons?.filter((_, i) => i !== index) || [];
+    setFormData(prev => ({ ...prev, actionButtons: updatedButtons }));
   };
 
-  const updateActionButton = (index: number, field: keyof ActionButton, value: any) => {
-    const buttons = [...(editedStep.actionButtons || [])];
-    buttons[index] = { ...buttons[index], [field]: value };
-    setEditedStep({
-      ...editedStep,
-      actionButtons: buttons
-    });
-  };
-
-  const removeActionButton = (index: number) => {
-    const buttons = [...(editedStep.actionButtons || [])];
-    buttons.splice(index, 1);
-    setEditedStep({
-      ...editedStep,
-      actionButtons: buttons
-    });
-  };
-
-  // Save button as template
-  const handleSaveAsTemplate = async (button: ActionButton) => {
+  const handleSaveTemplate = async (button: ActionButton) => {
     if (!newTemplateName.trim()) {
       toast({
         title: "Fehler",
@@ -184,670 +172,237 @@ export function WorkflowStepEditor({ step, allSteps, onSave, onCancel }: Workflo
     }
 
     try {
-          await saveButtonTemplate({
-            name: newTemplateName,
-            label: button.label,
-            variant: button.variant,
-            icon: button.icon,
-            actionType: button.actionType,
-            statusMessage: button.statusMessage,
-            statusIcon: button.statusIcon,
-            statusBackgroundColor: button.statusBackgroundColor
-          });
-      
-      // Update button with template name
-      const updatedButtons = editedStep.actionButtons?.map(b => 
-        b.id === button.id ? { ...b, templateName: newTemplateName } : b
-      ) || [];
-      
-      setEditedStep({
-        ...editedStep,
-        actionButtons: updatedButtons
+      await onSaveButtonTemplate({
+        name: newTemplateName,
+        label: button.label,
+        variant: button.variant,
+        icon: button.icon,
+        actionType: button.actionType,
+        statusMessage: button.statusMessage,
+        statusIcon: button.statusIcon,
+        statusBackgroundColor: button.statusBackgroundColor
       });
-      
-      setNewTemplateName('');
-      setSaveAsTemplate(false);
-      setCurrentButtonIndex(-1);
-      
+
       toast({
-        title: "Erfolg",
-        description: "Button-Vorlage wurde gespeichert",
+        title: "Vorlage gespeichert",
+        description: `Die Vorlage "${newTemplateName}" wurde erfolgreich gespeichert.`
       });
+
+      setNewTemplateName('');
+      setShowSaveTemplateDialog(false);
+      setCurrentButtonForTemplate(null);
     } catch (error) {
       toast({
         title: "Fehler",
-        description: "Button-Vorlage konnte nicht gespeichert werden",
+        description: "Die Vorlage konnte nicht gespeichert werden.",
         variant: "destructive"
       });
     }
   };
 
-  const commonEmojis = [
-    // Status & Feedback Icons
-    '✅', '❌', '⚠️', '❗', 'ℹ️', '🚫', '🛑', '🔄', '✨', '💯',
-    
-    // White/Light Symbols (for dark backgrounds)
-    '⚠', '!', '?', '✓', '✗', '◉', '○', '●', '▲', '▼',
-    
-    // Colored Circles
-    '🔴', '🟠', '🟡', '🟢', '🔵', '🟣', '⚪', '⚫', '🟤', '🔘',
-    
-    // Communication & Actions
-    '📞', '✉️', '💬', '📋', '📝', '🔍', '💡', '🎯', '📊', '📈',
-    
-    // Business & Office
-    '💼', '🏢', '👤', '👥', '🤝', '💰', '💳', '📁', '📂', '🗂️',
-    
-    // Technical & System
-    '⚙️', '🛠️', '🔧', '🔨', '⚡', '🔋', '💻', '📱', '🖥️', '⌨️',
-    
-    // Navigation & Movement
-    '🏠', '🚀', '🎮', '🔒', '🔓', '📤', '📥', '↗️', '↙️', '🔄',
-    
-    // Achievements & Events
-    '⭐', '🏆', '🎉', '🎊', '🎨', '🔔', '📢', '📣', '🎪', '🎭'
-  ];
-
-  const statusColors = [
-    { name: 'Standard', value: 'default' },
-    { name: 'Blau', value: 'bg-blue-500' },
-    { name: 'Grün', value: 'bg-green-500' },
-    { name: 'Gelb', value: 'bg-yellow-500' },
-    { name: 'Rot', value: 'bg-red-500' },
-    { name: 'Lila', value: 'bg-purple-500' },
-    { name: 'Pink', value: 'bg-pink-500' },
-    { name: 'Grau', value: 'bg-gray-500' }
-  ];
-
-  const availableNextSteps = allSteps.filter(s => s.id !== editedStep.id);
-
-  const addSubStep = () => {
-    const newSubStep: CallStep = {
-      id: `sub-step-${Date.now()}`,
-      title: "",
-      description: "",
-      communication: "",
-      completed: false,
-      required: false,
-      sortOrder: (editedStep.subSteps?.length || 0) + 1,
-      stepType: "sub_step",
-      nextStepConditions: [],
-      positionX: 0,
-      positionY: 0,
-      isStartStep: false,
-      isEndStep: false,
-      parentStepId: editedStep.id,
-      category: ""
-    };
-    
-    setEditedStep({
-      ...editedStep,
-      subSteps: [...(editedStep.subSteps || []), newSubStep]
-    });
-  };
-
-  const updateSubStep = (subStepIndex: number, field: keyof CallStep, value: any) => {
-    const updatedSubSteps = [...(editedStep.subSteps || [])];
-    updatedSubSteps[subStepIndex] = {
-      ...updatedSubSteps[subStepIndex],
-      [field]: value
-    };
-    
-    setEditedStep({
-      ...editedStep,
-      subSteps: updatedSubSteps
-    });
-  };
-
-  const removeSubStep = (subStepIndex: number) => {
-    const updatedSubSteps = [...(editedStep.subSteps || [])];
-    updatedSubSteps.splice(subStepIndex, 1);
-    
-    setEditedStep({
-      ...editedStep,
-      subSteps: updatedSubSteps
-    });
+  const handleApplyTemplate = (template: ButtonTemplate) => {
+    setButtonFormData(prev => ({
+      ...prev,
+      label: template.label,
+      variant: template.variant,
+      icon: template.icon || '',
+      actionType: template.actionType,
+      statusMessage: template.statusMessage || '',
+      templateName: template.name,
+      statusIcon: template.statusIcon,
+      statusBackgroundColor: template.statusBackgroundColor
+    }));
   };
 
   return (
-    <div className="space-y-6 max-w-4xl">
-      {/* Basic Information */}
+    <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Schritt-Informationen</CardTitle>
+          <CardTitle>
+            {step ? 'Schritt bearbeiten' : 'Neuen Schritt erstellen'}
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
               <Label htmlFor="title">Titel</Label>
               <Input
                 id="title"
-                value={editedStep.title}
-                onChange={(e) => setEditedStep({ ...editedStep, title: e.target.value })}
+                value={formData.title}
+                onChange={(e) => handleInputChange('title', e.target.value)}
                 placeholder="Schritt-Titel eingeben"
               />
             </div>
             
-            <div>
-              <Label htmlFor="category">Kategorie/Label</Label>
+            <div className="space-y-2">
+              <Label htmlFor="category">Kategorie</Label>
               <Input
                 id="category"
-                value={editedStep.category || ''}
-                onChange={(e) => setEditedStep({...editedStep, category: e.target.value})}
-                placeholder="z.B. Wichtig, Optional, Verkauf, Support..."
+                value={formData.category || ''}
+                onChange={(e) => handleInputChange('category', e.target.value)}
+                placeholder="z.B. Begrüßung, Authentifizierung"
               />
             </div>
           </div>
 
-          <div>
+          <div className="space-y-2">
             <Label htmlFor="description">Beschreibung</Label>
             <Textarea
               id="description"
-              value={editedStep.description}
-              onChange={(e) => setEditedStep({ ...editedStep, description: e.target.value })}
-              placeholder="Was soll in diesem Schritt getan werden?"
+              value={formData.description}
+              onChange={(e) => handleInputChange('description', e.target.value)}
+              placeholder="Beschreibung des Schritts"
               rows={3}
             />
           </div>
-          
-          <div>
-            <Label htmlFor="communication">Kommunikationsvorlage</Label>
+
+          <div className="space-y-2">
+            <Label htmlFor="communication">Kommunikation</Label>
             <Textarea
               id="communication"
-              value={editedStep.communication}
-              onChange={(e) => setEditedStep({ ...editedStep, communication: e.target.value })}
-              placeholder="Was soll dem Kunden gesagt werden?"
-              rows={3}
+              value={formData.communication}
+              onChange={(e) => handleInputChange('communication', e.target.value)}
+              placeholder="Was soll der Agent sagen?"
+              rows={4}
             />
           </div>
 
-        </CardContent>
-      </Card>
-
-      {/* Step Settings */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Schritt-Einstellungen</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center space-x-4 flex-wrap">
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="required"
-                checked={editedStep.required}
-                onCheckedChange={(checked) => setEditedStep({ ...editedStep, required: checked })}
-              />
-              <Label htmlFor="required">Pflichtschritt</Label>
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="isOptional"
-                checked={editedStep.isStartStep}
-                onCheckedChange={(checked) => setEditedStep({ ...editedStep, isStartStep: checked })}
-              />
-              <Label htmlFor="isOptional">Optionaler Schritt</Label>
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="isEndStep"
-                checked={editedStep.isEndStep}
-                onCheckedChange={(checked) => setEditedStep({ ...editedStep, isEndStep: checked })}
-              />
-              <Label htmlFor="isEndStep">Endschritt</Label>
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="hasAuthentication"
-                checked={editedStep.actionButtons?.some(button => button.templateName === 'Authentifizierung') || false}
-                onCheckedChange={(checked) => {
-                  const hasAuthButton = editedStep.actionButtons?.some(button => button.templateName === 'Authentifizierung');
-                  
-                  if (checked && !hasAuthButton) {
-                    // Add authentication button from template
-                    const authTemplate = buttonTemplates.find(t => t.name === 'Authentifizierung');
-                    if (authTemplate) {
-                      const newButton: ActionButton = {
-                        id: crypto.randomUUID(),
-                        label: authTemplate.label,
-                        variant: authTemplate.variant,
-                        actionType: authTemplate.actionType,
-                        icon: authTemplate.icon,
-                        statusMessage: authTemplate.statusMessage,
-                        statusIcon: authTemplate.statusIcon,
-                        statusBackgroundColor: authTemplate.statusBackgroundColor,
-                        enabled: true,
-                        templateName: authTemplate.name
-                      };
-                      setEditedStep({
-                        ...editedStep,
-                        actionButtons: [...(editedStep.actionButtons || []), newButton]
-                      });
-                    }
-                  } else if (!checked && hasAuthButton) {
-                    // Remove authentication button
-                    const filteredButtons = editedStep.actionButtons?.filter(button => button.templateName !== 'Authentifizierung') || [];
-                    setEditedStep({
-                      ...editedStep,
-                      actionButtons: filteredButtons
-                    });
-                  }
-                }}
-              />
-              <Label htmlFor="hasAuthentication">Authentifizierung</Label>
-            </div>
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="required"
+              checked={formData.required}
+              onCheckedChange={(checked) => handleInputChange('required', checked)}
+            />
+            <Label htmlFor="required">Pflichtschritt</Label>
           </div>
-        </CardContent>
-      </Card>
 
-
-      {/* Sub-Steps Section */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Unterschritte</CardTitle>
-            <Button onClick={addSubStep} variant="outline" size="sm">
-              <Plus className="w-4 h-4 mr-2" />
-              Unterschritt hinzufügen
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {editedStep.subSteps && editedStep.subSteps.length > 0 ? (
-            editedStep.subSteps.map((subStep, index) => (
-              <Card key={subStep.id} className="border-muted">
-                <CardContent className="p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h4 className="font-medium">Unterschritt {index + 1}</h4>
-                    <Button 
-                      onClick={() => removeSubStep(index)} 
-                      variant="destructive" 
-                      size="sm"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Titel</Label>
-                      <Input
-                        value={subStep.title}
-                        onChange={(e) => updateSubStep(index, 'title', e.target.value)}
-                        placeholder="Unterschritt-Titel"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Kategorie</Label>
-                      <Input
-                        value={subStep.category || ''}
-                        onChange={(e) => updateSubStep(index, 'category', e.target.value)}
-                        placeholder="Kategorie für diesen Unterschritt"
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label>Beschreibung</Label>
-                    <Textarea
-                      value={subStep.description}
-                      onChange={(e) => updateSubStep(index, 'description', e.target.value)}
-                      placeholder="Was soll in diesem Unterschritt getan werden?"
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label>Kommunikation</Label>
-                    <Textarea
-                      value={subStep.communication}
-                      onChange={(e) => updateSubStep(index, 'communication', e.target.value)}
-                      placeholder="Was soll dem Kunden kommuniziert werden?"
-                    />
-                  </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      id={`required-${index}`}
-                      checked={subStep.required}
-                      onCheckedChange={(checked) => updateSubStep(index, 'required', checked)}
-                    />
-                    <Label htmlFor={`required-${index}`}>Pflichtschritt</Label>
-                  </div>
-                </CardContent>
-              </Card>
-            ))
-          ) : (
-            <p className="text-muted-foreground text-center py-8">
-              Keine Unterschritte vorhanden. Klicken Sie auf "Unterschritt hinzufügen", um einen neuen zu erstellen.
-            </p>
-          )}
-        </CardContent>
-      </Card>
-
-
-      {/* Action Buttons Configuration */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Aktions-Buttons</CardTitle>
-            <div className="flex gap-2">
-              {/* Template Selection */}
-              <Select value={selectedTemplate} onValueChange={setSelectedTemplate}>
-                <SelectTrigger className="w-48">
-                  <SelectValue placeholder="Vorlage auswählen..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {buttonTemplates.map((template) => (
-                    <SelectItem key={template.id} value={template.id}>
-                      <div className="flex items-center gap-2">
-                        {template.icon && <span>{template.icon}</span>}
-                        {template.name}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              
-              <Button onClick={addActionButton} variant="outline" size="sm">
-                <Plus className="w-4 h-4 mr-2" />
-                {selectedTemplate ? 'Vorlage hinzufügen' : 'Neuer Button'}
+          {/* Action Buttons Section */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <Label>Aktions-Buttons</Label>
+              <Button onClick={handleAddButton} size="sm">
+                <Plus className="w-4 h-4 mr-1" />
+                Button hinzufügen
               </Button>
             </div>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="text-sm text-muted-foreground mb-4">
-            Der "Schritt abgeschlossen" Button wird automatisch hinzugefügt. Hier können Sie zusätzliche Buttons konfigurieren.
-          </div>
-          
-          {editedStep.actionButtons && editedStep.actionButtons.length > 0 ? (
-            editedStep.actionButtons.map((button, index) => (
-              <Card key={button.id} className="border-muted">
-                <CardContent className="p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <h4 className="font-medium flex items-center">
-                        <MousePointer className="w-4 h-4 mr-2" />
-                        {button.templateName || `Button ${index + 1}`}
-                      </h4>
-                      <Switch
-                        checked={button.enabled !== false}
-                        onCheckedChange={() => toggleActionButton(index)}
-                      />
+            
+            {formData.actionButtons && formData.actionButtons.length > 0 && (
+              <div className="space-y-2">
+                {formData.actionButtons.map((button, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <span className="text-lg">{button.icon}</span>
+                      <div>
+                        <div className="font-medium">{button.label}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {button.actionType} • {button.variant}
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex gap-2">
-                      {/* Save as Template */}
-                      {!button.templateName && (
-                        <Button 
-                          onClick={() => {
-                            setSaveAsTemplate(true);
-                            setCurrentButtonIndex(index);
-                          }} 
-                          variant="outline" 
-                          size="sm"
-                        >
-                          <Save className="w-4 h-4" />
-                        </Button>
-                      )}
-                      <Button 
-                        onClick={() => removeActionButton(index)} 
-                        variant="destructive" 
+                    <div className="flex items-center space-x-1">
+                      <Button
                         size="sm"
+                        variant="outline"
+                        onClick={() => handleEditButton(index)}
+                      >
+                        Bearbeiten
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleDeleteButton(index)}
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
                   </div>
+                ))}
+              </div>
+            )}
+          </div>
 
-                  {/* Button Preview */}
-                  <div className="bg-muted p-3 rounded-md">
-                    <Label className="text-sm font-medium">Vorschau:</Label>
-                    <div className="mt-2">
-                      <Button 
-                        variant={button.variant}
-                        size="sm"
-                        className="pointer-events-none"
-                        disabled={button.enabled === false}
-                      >
-                        {button.icon && <span className="mr-2">{button.icon}</span>}
-                        {button.label || "Button Text"}
-                      </Button>
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Button Name</Label>
-                      <Input
-                        value={button.templateName || `Button ${index + 1}`}
-                        onChange={(e) => updateActionButton(index, 'templateName', e.target.value)}
-                        placeholder="z.B. Problem Button"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Button Text</Label>
-                      <Input
-                        value={button.label}
-                        onChange={(e) => updateActionButton(index, 'label', e.target.value)}
-                        placeholder="z.B. Problem aufgetreten"
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Button Stil</Label>
-                      <Select
-                        value={button.variant}
-                        onValueChange={(value: ActionButton['variant']) => 
-                          updateActionButton(index, 'variant', value)
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="default">Standard</SelectItem>
-                          <SelectItem value="destructive">Rot (Fehler)</SelectItem>
-                          <SelectItem value="outline">Umrandet</SelectItem>
-                          <SelectItem value="secondary">Sekundär</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Aktions-Typ</Label>
-                      <Select
-                        value={button.actionType}
-                        onValueChange={(value: ActionButton['actionType']) => 
-                          updateActionButton(index, 'actionType', value)
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="complete">Schritt abschließen</SelectItem>
-                          <SelectItem value="fail">Fehler/Problem</SelectItem>
-                          <SelectItem value="info">Info anzeigen</SelectItem>
-                          <SelectItem value="custom">Benutzerdefiniert</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label>Icon</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        value={button.icon || ''}
-                        onChange={(e) => updateActionButton(index, 'icon', e.target.value)}
-                        placeholder="Emoji auswählen..."
-                        className="flex-1"
-                      />
-                    </div>
-                    <div className="grid grid-cols-10 gap-1 mt-2">
-                      {commonEmojis.map((emoji) => (
-                        <Button
-                          key={emoji}
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0 text-base hover:bg-accent"
-                          onClick={() => updateActionButton(index, 'icon', emoji)}
-                        >
-                          {emoji}
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Status-Nachricht</Label>
-                    <Textarea
-                      value={button.statusMessage || ''}
-                      onChange={(e) => updateActionButton(index, 'statusMessage', e.target.value)}
-                      placeholder="Diese Nachricht wird in der Status-Übersicht angezeigt"
-                      rows={2}
-                    />
-                  </div>
-
-                  {/* Status-Darstellung Konfiguration */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Status-Icon</Label>
-                      <div className="flex gap-2">
-                        <Input
-                          value={button.statusIcon || ''}
-                          onChange={(e) => updateActionButton(index, 'statusIcon', e.target.value)}
-                          placeholder="Emoji auswählen..."
-                          className="flex-1"
-                        />
-                      </div>
-                      <div className="grid grid-cols-10 gap-1 mt-2">
-                        {commonEmojis.map((emoji) => (
-                          <Button
-                            key={emoji}
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 w-8 p-0 text-base hover:bg-accent"
-                            onClick={() => updateActionButton(index, 'statusIcon', emoji)}
-                          >
-                            {emoji}
-                          </Button>
-                        ))}
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label>Status-Hintergrundfarbe</Label>
-                      <Select
-                        value={button.statusBackgroundColor || 'default'}
-                        onValueChange={(value) => updateActionButton(index, 'statusBackgroundColor', value === 'default' ? '' : value)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Farbe auswählen" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {statusColors.map((color) => (
-                            <SelectItem key={color.value} value={color.value}>
-                              <div className="flex items-center gap-2">
-                                <div 
-                                  className={`w-4 h-4 rounded ${color.value === 'default' ? 'bg-muted' : color.value}`}
-                                />
-                                {color.name}
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                   {/* Status Vorschau für alle Buttons mit statusMessage */}
-                  {button.statusMessage && (
-                    <div className="bg-muted p-3 rounded-md">
-                      <Label className="text-sm font-medium">Status-Vorschau:</Label>
-                      <div className={`mt-2 p-3 rounded-lg border ${
-                        button.statusBackgroundColor === 'default' || !button.statusBackgroundColor 
-                          ? 'bg-primary/10 border-primary/20' 
-                          : (() => {
-                              const colorClass = button.statusBackgroundColor;
-                              if (colorClass.includes('blue')) return 'bg-blue-500/10 border-blue-500/20';
-                              if (colorClass.includes('green')) return 'bg-green-500/10 border-green-500/20';
-                              if (colorClass.includes('yellow')) return 'bg-yellow-500/10 border-yellow-500/20';
-                              if (colorClass.includes('red')) return 'bg-red-500/10 border-red-500/20';
-                              if (colorClass.includes('purple')) return 'bg-purple-500/10 border-purple-500/20';
-                              if (colorClass.includes('pink')) return 'bg-pink-500/10 border-pink-500/20';
-                              if (colorClass.includes('gray')) return 'bg-gray-500/10 border-gray-500/20';
-                              return 'bg-primary/10 border-primary/20';
-                            })()
-                      }`}>
-                        <div className="flex items-center gap-2">
-                          {button.statusIcon && <span className="text-base">{button.statusIcon}</span>}
-                          <span className="font-medium text-sm">
-                            {button.statusMessage || "Status-Nachricht wird hier angezeigt"}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* Save as Template Dialog */}
-                  {saveAsTemplate && currentButtonIndex === index && (
-                    <div className="border-t pt-4 mt-4">
-                      <div className="space-y-3">
-                        <Label>Als Vorlage speichern</Label>
-                        <div className="flex gap-2">
-                          <Input
-                            value={newTemplateName}
-                            onChange={(e) => setNewTemplateName(e.target.value)}
-                            placeholder="Vorlagen-Name eingeben..."
-                            className="flex-1"
-                          />
-                          <Button 
-                            onClick={() => handleSaveAsTemplate(button)}
-                            size="sm"
-                          >
-                            Speichern
-                          </Button>
-                          <Button 
-                            onClick={() => {
-                              setSaveAsTemplate(false);
-                              setNewTemplateName('');
-                              setCurrentButtonIndex(-1);
-                            }}
-                            variant="outline"
-                            size="sm"
-                          >
-                            Abbrechen
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            ))
-          ) : (
-            <p className="text-muted-foreground text-center py-8">
-              Keine zusätzlichen Buttons konfiguriert. Der Standard "Schritt abgeschlossen" Button wird automatisch hinzugefügt.
-            </p>
-          )}
+          <div className="flex justify-end space-x-2 pt-4">
+            {onCancel && (
+              <Button variant="outline" onClick={onCancel}>
+                Abbrechen
+              </Button>
+            )}
+            <Button onClick={handleSave}>
+              <Save className="w-4 h-4 mr-1" />
+              Speichern
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
-      {/* Actions */}
-      <div className="flex justify-end space-x-3">
-        <Button variant="outline" onClick={onCancel}>
-          Abbrechen
-        </Button>
-        <Button onClick={handleSave} className="bg-gradient-primary">
-          <Settings className="w-4 h-4 mr-2" />
-          Speichern
-        </Button>
-      </div>
+      {/* Button Dialog - Simplified version */}
+      {showButtonDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <CardTitle>
+                {editingButtonIndex !== null ? 'Button bearbeiten' : 'Neuen Button erstellen'}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label>Button-Text</Label>
+                <Input
+                  value={buttonFormData.label}
+                  onChange={(e) => setButtonFormData(prev => ({ ...prev, label: e.target.value }))}
+                  placeholder="Button-Text eingeben"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Icon (Emoji)</Label>
+                <Input
+                  value={buttonFormData.icon || ''}
+                  onChange={(e) => setButtonFormData(prev => ({ ...prev, icon: e.target.value }))}
+                  placeholder="z.B. ✓, ✋, ⚠️"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Button-Typ</Label>
+                <Select
+                  value={buttonFormData.variant}
+                  onValueChange={(value: any) => setButtonFormData(prev => ({ ...prev, variant: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="default">Standard</SelectItem>
+                    <SelectItem value="destructive">Fehler/Problem</SelectItem>
+                    <SelectItem value="outline">Neutral</SelectItem>
+                    <SelectItem value="secondary">Sekundär</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Status-Nachricht</Label>
+                <Textarea
+                  value={buttonFormData.statusMessage || ''}
+                  onChange={(e) => setButtonFormData(prev => ({ ...prev, statusMessage: e.target.value }))}
+                  placeholder="Was passiert wenn der Button geklickt wird?"
+                  rows={2}
+                />
+              </div>
+              
+              <div className="flex justify-end space-x-2">
+                <Button variant="outline" onClick={() => setShowButtonDialog(false)}>
+                  Abbrechen
+                </Button>
+                <Button onClick={handleSaveButton}>
+                  Speichern
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }

@@ -25,7 +25,10 @@ export default function CallDashboard() {
     saveStep, 
     deleteStep, 
     updateStepsLocally,
-    reorderSteps
+    reorderSteps,
+    buttonTemplates,
+    saveButtonTemplate,
+    deleteButtonTemplate
   } = useCallSteps();
 
   const handleEditorAccess = () => {
@@ -115,8 +118,9 @@ export default function CallDashboard() {
             onWorkflowChange={setCurrentWorkflow}
             onCreateWorkflow={createWorkflow}
             onDeleteWorkflow={deleteWorkflow}
-            onReorderSteps={reorderSteps}
-            onSaveAndExecute={handleSaveAndExecute}
+            buttonTemplates={buttonTemplates}
+            onSaveButtonTemplate={saveButtonTemplate}
+            onDeleteButtonTemplate={deleteButtonTemplate}
           />
         )}
 

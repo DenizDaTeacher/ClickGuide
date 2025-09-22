@@ -71,6 +71,89 @@ export function useCallSteps() {
 
   console.log('🏢 useCallSteps initialized with tenant:', tenantId);
 
+  // Create default workflow for new projects
+  const createDefaultWorkflow = async (projectId: string) => {
+    console.log('🆕 Creating default workflow for project:', projectId);
+    
+    try {
+      // Check if workflow already exists
+      const { data: existingSteps } = await supabase
+        .from('call_steps')
+        .select('id')
+        .eq('tenant_id', projectId)
+        .eq('workflow_name', 'Gesprächsschritte')
+        .limit(1);
+
+      if (existingSteps && existingSteps.length > 0) {
+        console.log('✅ Default workflow already exists');
+        return;
+      }
+
+      // Create default steps
+      const defaultSteps = [
+        {
+          step_id: 'greeting',
+          title: 'Begrüßung',
+          description: 'Freundliche Begrüßung und Firmenvorstellung',
+          communication: 'Guten Tag! Hier ist [Name] von [Firma]. Wie kann ich Ihnen heute helfen?',
+          required: true,
+          sort_order: 1,
+          tenant_id: projectId,
+          workflow_name: 'Gesprächsschritte',
+          category: 'Begrüßung',
+          step_type: 'normal',
+          action_buttons: [
+            {
+              id: `action-${Date.now()}`,
+              label: 'Weiter zum nächsten Schritt',
+              variant: 'default',
+              actionType: 'complete',
+              icon: '✓',
+              enabled: true
+            }
+          ]
+        },
+        {
+          step_id: 'identification',
+          title: 'Kundenidentifikation',
+          description: 'Sicherheitsabfrage zur Identitätsprüfung',
+          communication: 'Zur Sicherheit benötige ich von Ihnen bitte Ihren vollständigen Namen und Ihr Geburtsdatum.',
+          required: true,
+          sort_order: 2,
+          tenant_id: projectId,
+          workflow_name: 'Gesprächsschritte',
+          category: 'Authentifizierung',
+          step_type: 'normal',
+          action_buttons: [
+            {
+              id: `action-${Date.now() + 1}`,
+              label: 'Kunde identifiziert',
+              variant: 'default',
+              actionType: 'complete',
+              icon: '✓',
+              enabled: true
+            }
+          ]
+        }
+      ];
+
+      // Insert default steps
+      for (const step of defaultSteps) {
+        const { error } = await supabase
+          .from('call_steps')
+          .insert([step]);
+        
+        if (error) {
+          console.error('Error creating default step:', error);
+        }
+      }
+
+      console.log('✅ Default workflow created successfully');
+    } catch (error) {
+      console.error('Error creating default workflow:', error);
+    }
+  };
+
   // Load available workflows
   const loadWorkflows = async () => {
     try {
@@ -640,8 +723,15 @@ export function useCallSteps() {
 
   // Load workflows and templates when tenant changes
   useEffect(() => {
-    if (tenantId) {
+    if (tenantId && tenantId !== 'default') {
       console.log('🏢 Tenant changed, reloading data for:', tenantId);
+      
+      // Create default workflow for new projects first
+      createDefaultWorkflow(tenantId).then(() => {
+        loadWorkflows();
+        loadButtonTemplates();
+      });
+    } else if (tenantId === 'default') {
       loadWorkflows();
       loadButtonTemplates();
     }

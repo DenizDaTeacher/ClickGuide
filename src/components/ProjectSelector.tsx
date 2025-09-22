@@ -22,9 +22,9 @@ export function ProjectSelector({ isOpen, onProjectSelect }: ProjectSelectorProp
   const quickProjects = [
     'MediaMarktSaturn',
     'DHL',
-    'Deutsche Bahn',
-    'Vodafone',
-    'Telekom'
+    'Sparkasse',
+    'Allianz',
+    'BMW'
   ];
 
   return (

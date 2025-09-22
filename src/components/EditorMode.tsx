@@ -41,6 +41,9 @@ interface EditorModeProps {
   onDeleteWorkflow: (name: string) => void;
   onReorderSteps?: (steps: CallStep[]) => void;
   onSaveAndExecute?: () => void;
+  buttonTemplates: any[];
+  onSaveButtonTemplate: (template: any) => Promise<any>;
+  onDeleteButtonTemplate: (templateId: string) => Promise<void>;
 }
 
 interface SortableStepCardProps {
@@ -188,14 +191,17 @@ export default function EditorMode({
   onStepsUpdate, 
   loading, 
   onSaveStep, 
-  onDeleteStep,
-  currentWorkflow,
-  workflows,
-  onWorkflowChange,
-  onCreateWorkflow,
-  onDeleteWorkflow,
+  onDeleteStep, 
+  currentWorkflow, 
+  workflows, 
+  onWorkflowChange, 
+  onCreateWorkflow, 
+  onDeleteWorkflow, 
   onReorderSteps,
-  onSaveAndExecute
+  onSaveAndExecute,
+  buttonTemplates,
+  onSaveButtonTemplate,
+  onDeleteButtonTemplate
 }: EditorModeProps) {
   const [editingStep, setEditingStep] = useState<CallStep | null>(null);
   const [isCreatingNew, setIsCreatingNew] = useState(false);
@@ -284,12 +290,15 @@ export default function EditorMode({
 
   if (editingStep) {
     return (
-      <WorkflowStepEditor
-        step={editingStep}
-        allSteps={steps}
-        onSave={handleSave}
-        onCancel={handleCancel}
-      />
+        <WorkflowStepEditor
+          step={editingStep}
+          allSteps={steps}
+          onSave={handleSave}
+          onCancel={handleCancel}
+            buttonTemplates={buttonTemplates}
+            onSaveButtonTemplate={onSaveButtonTemplate}
+            onDeleteButtonTemplate={onDeleteButtonTemplate}
+        />
     );
   }
 

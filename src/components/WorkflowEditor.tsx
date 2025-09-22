@@ -11,9 +11,19 @@ interface WorkflowEditorProps {
   steps: CallStep[];
   onSaveStep: (step: CallStep, isNew: boolean) => Promise<boolean>;
   onDeleteStep: (stepId: string) => Promise<boolean>;
+  buttonTemplates: any[];
+  onSaveButtonTemplate: (template: any) => Promise<any>;
+  onDeleteButtonTemplate: (templateId: string) => Promise<void>;
 }
 
-export function WorkflowEditor({ steps, onSaveStep, onDeleteStep }: WorkflowEditorProps) {
+export function WorkflowEditor({ 
+  steps, 
+  onSaveStep, 
+  onDeleteStep,
+  buttonTemplates,
+  onSaveButtonTemplate,
+  onDeleteButtonTemplate
+}: WorkflowEditorProps) {
   const [selectedStep, setSelectedStep] = useState<CallStep | null>(null);
   const [showStepEditor, setShowStepEditor] = useState(false);
   const [draggedStep, setDraggedStep] = useState<string | null>(null);
@@ -188,6 +198,9 @@ export function WorkflowEditor({ steps, onSaveStep, onDeleteStep }: WorkflowEdit
                 setShowStepEditor(false);
                 setSelectedStep(null);
               }}
+              buttonTemplates={buttonTemplates}
+              onSaveButtonTemplate={onSaveButtonTemplate}
+              onDeleteButtonTemplate={onDeleteButtonTemplate}
             />
           )}
         </DialogContent>

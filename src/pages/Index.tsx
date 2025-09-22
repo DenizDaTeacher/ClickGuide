@@ -26,9 +26,19 @@ const Index = () => {
   };
 
   const handleDeleteProject = () => {
-    localStorage.removeItem('selectedProject');
-    setProject('default');
-    setShowProjectSelector(true);
+    const projectName = localStorage.getItem('selectedProject');
+    if (projectName && projectName !== 'default') {
+      // Confirm deletion
+      if (window.confirm(`Möchten Sie das Projekt "${projectName}" wirklich löschen? Alle Daten gehen verloren.`)) {
+        localStorage.removeItem('selectedProject');
+        setProject('default');
+        setShowProjectSelector(true);
+        
+        // Optional: Delete project data from database
+        // This would require a separate function to delete all steps for this tenant_id
+        console.log('🗑️ Project deleted:', projectName);
+      }
+    }
   };
 
   const currentProjectName = localStorage.getItem('selectedProject') || 'Kein Projekt';
