@@ -290,8 +290,8 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
                       Schritt abgeschlossen
                     </Button>
                     
-                    {/* Custom action buttons - only show for current step and enabled ones */}
-                    {currentDisplayStep && currentDisplayStep.actionButtons && currentDisplayStep.actionButtons
+                    {/* Custom action buttons - always show from main step */}
+                    {currentStep && currentStep.actionButtons && currentStep.actionButtons
                       .filter(button => button.enabled !== false)
                       .map((button) => {
                         return (
