@@ -52,6 +52,7 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
     }
     
     console.log('✅ Completing step:', currentStep.title, 'ID:', currentStep.id);
+    console.log('🔍 Status messages before completion:', statusMessages);
     
     // Handle sub-steps first
     if (currentStep.subSteps && currentStep.subSteps.length > 0) {
@@ -93,14 +94,32 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
       const nextStep = steps.find(step => step.id === nextStepId);
       console.log('🎯 Found next step:', nextStep);
       setCurrentStep(nextStep || null);
+      // Clear status messages when moving to a new step
+      if (nextStep) {
+        console.log('🧹 Clearing status messages for new step');
+        setStatusMessages([]);
+      }
     } else {
       // Fix: Use step ID to find current step index instead of object reference
       const currentIndex = steps.findIndex(step => step.id === currentStep.id);
       console.log('📍 Current step index (by ID):', currentIndex, 'of', steps.length, 'steps');
       const nextStep = currentIndex < steps.length - 1 ? steps[currentIndex + 1] : null;
       console.log('➡️ Next step in sequence:', nextStep);
+      
+      if (nextStep) {
+        console.log('🔍 Next step action buttons:', nextStep.actionButtons);
+      }
+      
       setCurrentStep(nextStep);
+      
+      // Clear status messages when moving to a new step
+      if (nextStep) {
+        console.log('🧹 Clearing status messages for new step');
+        setStatusMessages([]);
+      }
     }
+    
+    console.log('🔍 Status messages after step change:', statusMessages);
   };
 
   const handleBranchChoice = (nextStepId: string) => {
@@ -117,6 +136,9 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
     const nextStep = steps.find(step => step.id === nextStepId);
     if (nextStep) {
       setCurrentStep(nextStep);
+      // Clear status messages when moving to a new step
+      console.log('🧹 Clearing status messages for branch choice');
+      setStatusMessages([]);
     }
   };
 
