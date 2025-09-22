@@ -169,6 +169,8 @@ export function useCallSteps() {
 
   // Create a new workflow
   const createWorkflow = async (name: string) => {
+    console.log('📁 Creating new workflow:', name);
+    
     if (workflows.includes(name)) {
       toast({
         title: "Fehler",
@@ -182,8 +184,12 @@ export function useCallSteps() {
     setCurrentWorkflow(name);
     setSteps([]);
     
+    console.log('📁 Workflow created, ensuring default template...');
+    
     // Ensure default "Schritt abgeschlossen" template exists
     await ensureDefaultTemplate();
+    
+    console.log('📁 Workflow creation complete');
     
     toast({
       title: "Erfolg",
@@ -232,10 +238,14 @@ export function useCallSteps() {
 
   // Ensure default "Schritt abgeschlossen" template exists
   const ensureDefaultTemplate = async () => {
+    console.log('🔧 Ensuring default template exists...');
     const existingDefault = buttonTemplates.find(t => t.name === 'Schritt abgeschlossen');
+    console.log('🔧 Existing default template:', existingDefault);
+    
     if (!existingDefault) {
+      console.log('🔧 Creating default template...');
       try {
-        await saveButtonTemplate({
+        const newTemplate = await saveButtonTemplate({
           name: 'Schritt abgeschlossen',
           label: 'Schritt abgeschlossen',
           variant: 'default',
@@ -244,21 +254,31 @@ export function useCallSteps() {
           statusIcon: '✅',
           statusBackgroundColor: 'bg-green-500'
         });
+        console.log('🔧 Default template created successfully:', newTemplate);
+        return newTemplate;
       } catch (error) {
-        console.error('Error creating default template:', error);
+        console.error('🔧 Error creating default template:', error);
       }
     }
+    return existingDefault;
   };
 
   // Save a step to Supabase
   const saveStep = async (step: CallStep, isNew: boolean = false) => {
     try {
+      console.log('💾 Saving step...', { stepTitle: step.title, isNew, currentWorkflow });
+      
       // Ensure step has default button if no buttons exist
       let processedStep = { ...step };
       if (!processedStep.actionButtons || processedStep.actionButtons.length === 0) {
-        await ensureDefaultTemplate();
-        const defaultTemplate = buttonTemplates.find(t => t.name === 'Schritt abgeschlossen');
+        console.log('💾 No action buttons found, ensuring default template...');
+        
+        // Make sure we have the latest templates loaded
+        await loadButtonTemplates();
+        const defaultTemplate = await ensureDefaultTemplate();
+        
         if (defaultTemplate) {
+          console.log('💾 Adding default template to step:', defaultTemplate);
           processedStep.actionButtons = [{
             id: crypto.randomUUID(),
             label: defaultTemplate.label,
@@ -270,8 +290,27 @@ export function useCallSteps() {
             enabled: true,
             templateName: defaultTemplate.name
           }];
+        } else {
+          // Fallback: create button manually
+          console.log('💾 Creating fallback default button...');
+          processedStep.actionButtons = [{
+            id: crypto.randomUUID(),
+            label: 'Schritt abgeschlossen',
+            variant: 'default',
+            actionType: 'complete',
+            statusMessage: 'Schritt wurde erfolgreich abgeschlossen',
+            statusIcon: '✅',
+            statusBackgroundColor: 'bg-green-500',
+            enabled: true,
+            templateName: 'Schritt abgeschlossen'
+          }];
         }
       }
+
+      console.log('💾 Final processed step:', { 
+        actionButtons: processedStep.actionButtons?.length,
+        workflow: currentWorkflow 
+      });
 
       const stepData = {
         title: processedStep.title,
@@ -293,42 +332,53 @@ export function useCallSteps() {
         status_icon: processedStep.statusIcon
       };
 
+      console.log('💾 Saving step data to database:', stepData);
+
       if (isNew) {
         // Insert new step
         const maxSortOrder = Math.max(...steps.map((_, index) => index + 1), 0);
-        const { error } = await supabase
+        console.log('💾 Inserting new step with sort order:', maxSortOrder + 1);
+        
+        const { data, error } = await supabase
           .from('call_steps')
           .insert({
             step_id: processedStep.id,
             sort_order: maxSortOrder + 1,
             ...stepData
-          });
+          })
+          .select();
 
         if (error) {
-          console.error('Error inserting step:', error);
+          console.error('💾 Error inserting step:', error);
           toast({
             title: "Fehler beim Speichern",
-            description: "Der neue Schritt konnte nicht gespeichert werden.",
+            description: `Der neue Schritt konnte nicht gespeichert werden: ${error.message}`,
             variant: "destructive",
           });
           return false;
         }
+        
+        console.log('💾 Step inserted successfully:', data);
       } else {
         // Update existing step
-        const { error } = await supabase
+        console.log('💾 Updating existing step:', processedStep.id);
+        const { data, error } = await supabase
           .from('call_steps')
           .update(stepData)
-          .eq('step_id', processedStep.id);
+          .eq('step_id', processedStep.id)
+          .select();
 
         if (error) {
-          console.error('Error updating step:', error);
+          console.error('💾 Error updating step:', error);
           toast({
             title: "Fehler beim Speichern",
-            description: "Der Schritt konnte nicht aktualisiert werden.",
+            description: `Der Schritt konnte nicht aktualisiert werden: ${error.message}`,
             variant: "destructive",
           });
           return false;
         }
+        
+        console.log('💾 Step updated successfully:', data);
       }
       
       // Save sub-steps if they exist
@@ -376,6 +426,8 @@ export function useCallSteps() {
         }
       }
 
+      console.log('💾 Step saved successfully, reloading steps...');
+      
       toast({
         title: "Erfolgreich gespeichert",
         description: "Der Schritt wurde erfolgreich gespeichert.",
@@ -383,6 +435,7 @@ export function useCallSteps() {
       
       // Reload steps to get fresh data
       await loadSteps();
+      console.log('💾 Steps reloaded after save');
       return true;
     } catch (error) {
       console.error('Error saving step:', error);
