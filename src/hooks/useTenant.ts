@@ -31,6 +31,8 @@ export function useTenant() {
   // Set tenant ID (when user selects a project)
   const setTenantId = (projectName: string) => {
     localStorage.setItem('selectedProject', projectName);
+    // Trigger immediate reload by dispatching custom event
+    window.dispatchEvent(new CustomEvent('projectChanged', { detail: projectName }));
     loadTenant(projectName);
   };
 
@@ -40,25 +42,19 @@ export function useTenant() {
       setLoading(true);
       console.log('🏢 Loading tenant data for:', tenantId);
 
-      const { data, error } = await supabase
-        .from('tenants')
-        .select('*')
-        .eq('id', tenantId)
-        .maybeSingle();
+      // For project-based system, create a virtual tenant
+      const virtualTenant: Tenant = {
+        id: tenantId,
+        name: tenantId === 'default' ? 'Standard Projekt' : tenantId,
+        domain: '',
+        is_active: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
 
-      if (error) {
-        console.error('🏢 Error loading tenant:', error);
-        // If tenant not found, create it or use default
-        if (tenantId !== 'default') {
-          console.log('🏢 Tenant not found, falling back to default');
-          return await loadTenant('default');
-        }
-        return null;
-      }
-
-      console.log('🏢 Tenant loaded:', data);
-      setCurrentTenant(data);
-      return data;
+      console.log('🏢 Virtual tenant created:', virtualTenant);
+      setCurrentTenant(virtualTenant);
+      return virtualTenant;
     } catch (error) {
       console.error('🏢 Unexpected error loading tenant:', error);
       return null;
@@ -67,24 +63,22 @@ export function useTenant() {
     }
   };
 
-  // Initialize tenant on mount
+  // Initialize tenant on mount and listen for project changes
   useEffect(() => {
     const tenantId = getTenantId();
     loadTenant(tenantId);
-  }, []);
-
-  // Listen for URL changes to switch tenants
-  useEffect(() => {
-    const handleLocationChange = () => {
+    
+    // Listen for localStorage changes (when project changes)
+    const handleStorageChange = () => {
       const newTenantId = getTenantId();
       if (currentTenant && newTenantId !== currentTenant.id) {
-        console.log('🏢 Tenant changed, reloading:', newTenantId);
+        console.log('🏢 Project changed, reloading:', newTenantId);
         loadTenant(newTenantId);
       }
     };
 
-    window.addEventListener('popstate', handleLocationChange);
-    return () => window.removeEventListener('popstate', handleLocationChange);
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, [currentTenant]);
 
   return {

@@ -647,6 +647,22 @@ export function useCallSteps() {
     }
   }, [tenantId]);
 
+  // Also listen for custom project change events
+  useEffect(() => {
+    const handleProjectChange = (event: CustomEvent) => {
+      console.log('🏢 Project changed event received:', event.detail);
+      // Small delay to ensure tenantId is updated
+      setTimeout(() => {
+        loadWorkflows();
+        loadSteps();
+        loadButtonTemplates();
+      }, 100);
+    };
+
+    window.addEventListener('projectChanged', handleProjectChange as EventListener);
+    return () => window.removeEventListener('projectChanged', handleProjectChange as EventListener);
+  }, []);
+
   // Ensure default template exists after loading templates
   useEffect(() => {
     if (buttonTemplates.length > 0) {

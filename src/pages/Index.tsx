@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
 import CallDashboard from "@/components/CallDashboard";
-import { TenantInfo } from "@/components/TenantInfo";
-import { TenantManagement } from "@/components/TenantManagement";
 import { ProjectSelector } from "@/components/ProjectSelector";
+import { Button } from "@/components/ui/button";
 import { useTenant } from "@/hooks/useTenant";
 
 const Index = () => {
@@ -22,6 +21,18 @@ const Index = () => {
     setShowProjectSelector(false);
   };
 
+  const handleChangeProject = () => {
+    setShowProjectSelector(true);
+  };
+
+  const handleDeleteProject = () => {
+    localStorage.removeItem('selectedProject');
+    setProject('default');
+    setShowProjectSelector(true);
+  };
+
+  const currentProjectName = localStorage.getItem('selectedProject') || 'Kein Projekt';
+
   return (
     <>
       <ProjectSelector 
@@ -30,13 +41,22 @@ const Index = () => {
       />
       
       <div className="space-y-6">
-        <TenantInfo />
-        <CallDashboard />
-        
-        {/* Admin-Bereich für Team-Verwaltung */}
-        <div className="border-t pt-6">
-          <TenantManagement />
+        {/* Projekt Header */}
+        <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
+          <div>
+            <h2 className="text-xl font-semibold">Aktuelles Projekt: {currentProjectName}</h2>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={handleChangeProject}>
+              Projekt wechseln
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteProject}>
+              Projekt löschen
+            </Button>
+          </div>
         </div>
+        
+        <CallDashboard />
       </div>
     </>
   );
