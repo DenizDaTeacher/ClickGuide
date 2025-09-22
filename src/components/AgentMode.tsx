@@ -98,6 +98,7 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
       if (nextStep) {
         console.log('🧹 Clearing status messages for new step');
         setStatusMessages([]);
+        setAuthenticationFailed(false); // Also clear authentication failure state
       }
     } else {
       // Fix: Use step ID to find current step index instead of object reference
@@ -116,6 +117,7 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
       if (nextStep) {
         console.log('🧹 Clearing status messages for new step');
         setStatusMessages([]);
+        setAuthenticationFailed(false); // Also clear authentication failure state
       }
     }
     
@@ -136,9 +138,10 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
     const nextStep = steps.find(step => step.id === nextStepId);
     if (nextStep) {
       setCurrentStep(nextStep);
-      // Clear status messages when moving to a new step
+      // Clear status messages and authentication failure when moving to a new step
       console.log('🧹 Clearing status messages for branch choice');
       setStatusMessages([]);
+      setAuthenticationFailed(false);
     }
   };
 
