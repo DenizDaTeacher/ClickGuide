@@ -290,9 +290,26 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
                       Schritt abgeschlossen
                     </Button>
                     
-                    {/* Custom action buttons - always show from main step */}
-                    {currentStep && currentStep.actionButtons && currentStep.actionButtons
+                    {/* Custom action buttons - show from current display step */}
+                    {currentDisplayStep && currentDisplayStep.actionButtons && currentDisplayStep.actionButtons
                       .filter(button => button.enabled !== false)
+                      .map((button) => {
+                        return (
+                          <Button
+                            key={button.id}
+                            variant={button.variant}
+                            onClick={() => handleActionButton(button)}
+                          >
+                            {button.icon && <span className="mr-2">{button.icon}</span>}
+                            {button.label}
+                          </Button>
+                        );
+                      })}
+                    
+                    {/* Custom action buttons from main step (if we're in a sub-step) */}
+                    {currentSubStepIndex !== null && currentStep && currentStep.actionButtons && currentStep.actionButtons
+                      .filter(button => button.enabled !== false)
+                      .filter(button => !currentDisplayStep?.actionButtons?.some(subButton => subButton.id === button.id))
                       .map((button) => {
                         return (
                           <Button
