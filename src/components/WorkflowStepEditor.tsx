@@ -18,25 +18,52 @@ interface WorkflowStepEditorProps {
 }
 
 export function WorkflowStepEditor({ step, allSteps, onSave, onCancel }: WorkflowStepEditorProps) {
-  const [editedStep, setEditedStep] = useState<CallStep>({
-    ...step,
-    subSteps: step.subSteps || [],
-    category: step.category || "",
-    actionButtons: step.actionButtons || [],
-    statusBackgroundColor: step.statusBackgroundColor || "",
-    statusIcon: step.statusIcon || ""
-  });
+  const { 
+    buttonTemplates, 
+    saveButtonTemplate, 
+    deleteButtonTemplate 
+  } = useCallSteps();
+
+  // Ensure step has default "Schritt abgeschlossen" button if no buttons exist
+  const ensureDefaultButton = (stepData: CallStep): CallStep => {
+    if (!stepData.actionButtons || stepData.actionButtons.length === 0) {
+      const defaultTemplate = buttonTemplates.find(t => t.name === 'Schritt abgeschlossen');
+      if (defaultTemplate) {
+        return {
+          ...stepData,
+          actionButtons: [{
+            id: crypto.randomUUID(),
+            label: defaultTemplate.label,
+            variant: defaultTemplate.variant,
+            actionType: defaultTemplate.actionType,
+            statusMessage: defaultTemplate.statusMessage,
+            statusIcon: defaultTemplate.statusIcon,
+            statusBackgroundColor: defaultTemplate.statusBackgroundColor,
+            enabled: true,
+            templateName: defaultTemplate.name
+          }]
+        };
+      }
+    }
+    return stepData;
+  };
+
+  const [editedStep, setEditedStep] = useState<CallStep>(() => 
+    ensureDefaultButton({
+      ...step,
+      subSteps: step.subSteps || [],
+      category: step.category || "",
+      actionButtons: step.actionButtons || [],
+      statusBackgroundColor: step.statusBackgroundColor || "",
+      statusIcon: step.statusIcon || ""
+    })
+  );
   
   const [selectedTemplate, setSelectedTemplate] = useState<string>('');
   const [newTemplateName, setNewTemplateName] = useState<string>('');
   const [saveAsTemplate, setSaveAsTemplate] = useState<boolean>(false);
   const [currentButtonIndex, setCurrentButtonIndex] = useState<number>(-1);
 
-  const { 
-    buttonTemplates, 
-    saveButtonTemplate, 
-    deleteButtonTemplate 
-  } = useCallSteps();
   
   const { toast } = useToast();
 
@@ -532,7 +559,7 @@ export function WorkflowStepEditor({ step, allSteps, onSave, onCancel }: Workflo
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="text-sm text-muted-foreground mb-4">
-            Der "Schritt abgeschlossen" Button ist immer vorhanden. Hier können Sie zusätzliche Buttons konfigurieren.
+            Der "Schritt abgeschlossen" Button wird automatisch hinzugefügt. Hier können Sie zusätzliche Buttons konfigurieren.
           </div>
           
           {editedStep.actionButtons && editedStep.actionButtons.length > 0 ? (
@@ -805,7 +832,7 @@ export function WorkflowStepEditor({ step, allSteps, onSave, onCancel }: Workflo
             ))
           ) : (
             <p className="text-muted-foreground text-center py-8">
-              Keine zusätzlichen Buttons konfiguriert. Der Standard "Schritt abgeschlossen" Button ist immer verfügbar.
+              Keine zusätzlichen Buttons konfiguriert. Der Standard "Schritt abgeschlossen" Button wird automatisch hinzugefügt.
             </p>
           )}
         </CardContent>

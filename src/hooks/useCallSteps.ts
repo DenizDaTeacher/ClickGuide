@@ -182,6 +182,9 @@ export function useCallSteps() {
     setCurrentWorkflow(name);
     setSteps([]);
     
+    // Ensure default "Schritt abgeschlossen" template exists
+    await ensureDefaultTemplate();
+    
     toast({
       title: "Erfolg",
       description: `Liste "${name}" wurde erstellt`,
@@ -227,27 +230,67 @@ export function useCallSteps() {
     }
   };
 
+  // Ensure default "Schritt abgeschlossen" template exists
+  const ensureDefaultTemplate = async () => {
+    const existingDefault = buttonTemplates.find(t => t.name === 'Schritt abgeschlossen');
+    if (!existingDefault) {
+      try {
+        await saveButtonTemplate({
+          name: 'Schritt abgeschlossen',
+          label: 'Schritt abgeschlossen',
+          variant: 'default',
+          actionType: 'complete',
+          statusMessage: 'Schritt wurde erfolgreich abgeschlossen',
+          statusIcon: '✅',
+          statusBackgroundColor: 'bg-green-500'
+        });
+      } catch (error) {
+        console.error('Error creating default template:', error);
+      }
+    }
+  };
+
   // Save a step to Supabase
   const saveStep = async (step: CallStep, isNew: boolean = false) => {
     try {
+      // Ensure step has default button if no buttons exist
+      let processedStep = { ...step };
+      if (!processedStep.actionButtons || processedStep.actionButtons.length === 0) {
+        await ensureDefaultTemplate();
+        const defaultTemplate = buttonTemplates.find(t => t.name === 'Schritt abgeschlossen');
+        if (defaultTemplate) {
+          processedStep.actionButtons = [{
+            id: crypto.randomUUID(),
+            label: defaultTemplate.label,
+            variant: defaultTemplate.variant,
+            actionType: defaultTemplate.actionType,
+            statusMessage: defaultTemplate.statusMessage,
+            statusIcon: defaultTemplate.statusIcon,
+            statusBackgroundColor: defaultTemplate.statusBackgroundColor,
+            enabled: true,
+            templateName: defaultTemplate.name
+          }];
+        }
+      }
+
       const stepData = {
-        title: step.title,
-        description: step.description,
-        communication: step.communication,
-        required: step.required,
-        parent_step_id: step.parentStepId,
-        step_type: step.stepType,
-        condition_label: step.conditionLabel,
-        next_step_conditions: step.nextStepConditions,
-        action_buttons: JSON.parse(JSON.stringify(step.actionButtons)) as Json || [],
-        position_x: step.positionX,
-        position_y: step.positionY,
-        is_start_step: step.isStartStep,
-        is_end_step: step.isEndStep,
-        category: step.category,
+        title: processedStep.title,
+        description: processedStep.description,
+        communication: processedStep.communication,
+        required: processedStep.required,
+        parent_step_id: processedStep.parentStepId,
+        step_type: processedStep.stepType,
+        condition_label: processedStep.conditionLabel,
+        next_step_conditions: processedStep.nextStepConditions,
+        action_buttons: JSON.parse(JSON.stringify(processedStep.actionButtons)) as Json || [],
+        position_x: processedStep.positionX,
+        position_y: processedStep.positionY,
+        is_start_step: processedStep.isStartStep,
+        is_end_step: processedStep.isEndStep,
+        category: processedStep.category,
         workflow_name: currentWorkflow,
-        status_background_color: step.statusBackgroundColor,
-        status_icon: step.statusIcon
+        status_background_color: processedStep.statusBackgroundColor,
+        status_icon: processedStep.statusIcon
       };
 
       if (isNew) {
@@ -256,7 +299,7 @@ export function useCallSteps() {
         const { error } = await supabase
           .from('call_steps')
           .insert({
-            step_id: step.id,
+            step_id: processedStep.id,
             sort_order: maxSortOrder + 1,
             ...stepData
           });
@@ -275,7 +318,7 @@ export function useCallSteps() {
         const { error } = await supabase
           .from('call_steps')
           .update(stepData)
-          .eq('step_id', step.id);
+          .eq('step_id', processedStep.id);
 
         if (error) {
           console.error('Error updating step:', error);
@@ -289,14 +332,14 @@ export function useCallSteps() {
       }
       
       // Save sub-steps if they exist
-      if (step.subSteps && step.subSteps.length > 0) {
-        for (const subStep of step.subSteps) {
+      if (processedStep.subSteps && processedStep.subSteps.length > 0) {
+        for (const subStep of processedStep.subSteps) {
           const subStepData = {
             title: subStep.title,
             description: subStep.description,
             communication: subStep.communication,
             required: subStep.required,
-            parent_step_id: step.id,
+            parent_step_id: processedStep.id,
             step_type: 'sub_step',
             condition_label: subStep.conditionLabel,
             next_step_conditions: subStep.nextStepConditions,
@@ -528,6 +571,13 @@ export function useCallSteps() {
     loadWorkflows();
     loadButtonTemplates();
   }, []);
+
+  // Ensure default template exists after loading templates
+  useEffect(() => {
+    if (buttonTemplates.length > 0) {
+      ensureDefaultTemplate();
+    }
+  }, [buttonTemplates]);
 
   // Load steps when workflow changes
   useEffect(() => {
