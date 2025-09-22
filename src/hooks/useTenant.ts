@@ -16,9 +16,15 @@ export function useTenant() {
 
   // Get tenant ID from various sources (domain, URL params, localStorage)
   const getTenantId = (): string => {
+    console.log('🏢 DEBUG: Getting tenant ID...');
+    console.log('🏢 DEBUG: Current URL:', window.location.href);
+    console.log('🏢 DEBUG: Search params:', window.location.search);
+    
     // 1. Check URL parameters first (e.g., ?tenant=team-kundenservice)
     const urlParams = new URLSearchParams(window.location.search);
     const tenantParam = urlParams.get('tenant');
+    console.log('🏢 DEBUG: Tenant param from URL:', tenantParam);
+    
     if (tenantParam) {
       console.log('🏢 Tenant from URL param:', tenantParam);
       return tenantParam;
