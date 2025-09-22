@@ -152,6 +152,12 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
     console.log('🔴 Button actionType:', button.actionType);
     console.log('🔴 Button statusMessage:', button.statusMessage);
     
+    // Only add status message if there is one defined AND it's not a complete action
+    if (button.statusMessage && button.actionType !== 'complete') {
+      console.log('📝 Adding status message from button:', button.statusMessage);
+      setStatusMessages(prev => [...prev, button.statusMessage!]);
+    }
+    
     // Handle different action types
     switch (button.actionType) {
       case 'complete':
@@ -161,19 +167,11 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
       case 'fail':
         console.log('❌ Setting authentication failed');
         setAuthenticationFailed(true);
-        if (button.statusMessage) {
-          console.log('📝 Adding status message:', button.statusMessage);
-          setStatusMessages(prev => [...prev, button.statusMessage!]);
-        }
         break;
       case 'info':
       case 'custom':
       default:
-        console.log('ℹ️ Info/custom action, adding status message');
-        if (button.statusMessage) {
-          console.log('📝 Adding status message:', button.statusMessage);
-          setStatusMessages(prev => [...prev, button.statusMessage!]);
-        }
+        console.log('ℹ️ Info/custom action - status message already added above');
         break;
     }
   };
