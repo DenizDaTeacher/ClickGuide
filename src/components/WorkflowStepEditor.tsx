@@ -157,6 +157,34 @@ export function WorkflowStepEditor({
     { icon: '⚙️', name: 'Settings', component: Settings2 },
   ];
 
+  // Status-specific icons
+  const statusIcons = [
+    { icon: '✅', name: 'Success' },
+    { icon: '❌', name: 'Error' },
+    { icon: '⚠️', name: 'Warning' },
+    { icon: '⏸️', name: 'Paused' },
+    { icon: '✔️', name: 'Completed' },
+    { icon: '🔄', name: 'Processing' },
+    { icon: '⏳', name: 'Waiting' },
+    { icon: '📝', name: 'Note' },
+    { icon: '📋', name: 'Checklist' },
+    { icon: '🎯', name: 'Target' },
+    { icon: '💡', name: 'Idea' },
+    { icon: '🚀', name: 'Launch' },
+    { icon: '⭐', name: 'Star' },
+    { icon: '🔥', name: 'Fire' },
+    { icon: '💯', name: 'Perfect' },
+    { icon: '🎉', name: 'Celebration' },
+    { icon: '📈', name: 'Growth' },
+    { icon: '🔒', name: 'Locked' },
+    { icon: '🔓', name: 'Unlocked' },
+    { icon: '🌟', name: 'Highlight' },
+    { icon: '⚡', name: 'Fast' },
+    { icon: '🎁', name: 'Gift' },
+    { icon: '🏆', name: 'Trophy' },
+    { icon: '💎', name: 'Premium' }
+  ];
+
   const handleInputChange = (field: keyof CallStep, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
@@ -647,11 +675,64 @@ export function WorkflowStepEditor({
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Status Icon</Label>
-                      <Input
-                        value={buttonFormData.statusIcon || ''}
-                        onChange={(e) => setButtonFormData(prev => ({ ...prev, statusIcon: e.target.value }))}
-                        placeholder="z.B. ✅, ⏸️, 🔄"
-                      />
+                      <div className="flex space-x-2">
+                        <Input
+                          value={buttonFormData.statusIcon || ''}
+                          onChange={(e) => setButtonFormData(prev => ({ ...prev, statusIcon: e.target.value }))}
+                          placeholder="Status-Icon eingeben"
+                          className="flex-1"
+                        />
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button variant="outline" size="icon">
+                              <Palette className="h-4 w-4" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-80 bg-background border shadow-lg z-50">
+                            <div className="space-y-2">
+                              <Label className="text-sm font-medium">Status-Icons auswählen</Label>
+                              <div className="grid grid-cols-6 gap-2 max-h-48 overflow-y-auto">
+                                {statusIcons.map((iconData) => (
+                                  <Button
+                                    key={iconData.icon}
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8 w-8 p-0 hover:bg-muted"
+                                    onClick={() => setButtonFormData(prev => ({ 
+                                      ...prev, 
+                                      statusIcon: iconData.icon 
+                                    }))}
+                                    title={iconData.name}
+                                  >
+                                    <span className="text-sm">{iconData.icon}</span>
+                                  </Button>
+                                ))}
+                              </div>
+                              <Separator />
+                              <div className="space-y-2">
+                                <Input
+                                  placeholder="Status-Icon-Name suchen (z.B. success, error, warning)..."
+                                  className="text-xs"
+                                  onChange={(e) => {
+                                    const searchTerm = e.target.value.toLowerCase();
+                                    if (searchTerm) {
+                                      const matchingIcon = statusIcons.find(icon => 
+                                        icon.name.toLowerCase().includes(searchTerm)
+                                      );
+                                      if (matchingIcon) {
+                                        setButtonFormData(prev => ({ 
+                                          ...prev, 
+                                          statusIcon: matchingIcon.icon 
+                                        }));
+                                      }
+                                    }
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                      </div>
                     </div>
                     
                     <div className="space-y-2">
