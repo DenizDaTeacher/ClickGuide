@@ -25,22 +25,6 @@ const Index = () => {
     setShowProjectSelector(true);
   };
 
-  const handleDeleteProject = () => {
-    const projectName = localStorage.getItem('selectedProject');
-    if (projectName && projectName !== 'default') {
-      // Confirm deletion
-      if (window.confirm(`Möchten Sie das Projekt "${projectName}" wirklich löschen? Alle Daten gehen verloren.`)) {
-        localStorage.removeItem('selectedProject');
-        setProject('default');
-        setShowProjectSelector(true);
-        
-        // Optional: Delete project data from database
-        // This would require a separate function to delete all steps for this tenant_id
-        console.log('🗑️ Project deleted:', projectName);
-      }
-    }
-  };
-
   const currentProjectName = localStorage.getItem('selectedProject') || 'Kein Projekt';
 
   return (
@@ -59,9 +43,6 @@ const Index = () => {
           <div className="flex gap-2">
             <Button variant="outline" onClick={handleChangeProject}>
               Projekt wechseln
-            </Button>
-            <Button variant="destructive" onClick={handleDeleteProject}>
-              Projekt löschen
             </Button>
           </div>
         </div>

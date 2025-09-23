@@ -20,6 +20,7 @@ export function ProjectSelector({ isOpen, onProjectSelect }: ProjectSelectorProp
   };
 
   const quickProjects = [
+    'DEMO',
     'MEDIAMARKTSATURN',
     'EON',
     'DHL',

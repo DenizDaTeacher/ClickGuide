@@ -68,18 +68,27 @@ export function useTenant() {
     const tenantId = getTenantId();
     loadTenant(tenantId);
     
+    // Listen for custom project change events
+    const handleProjectChange = (e: CustomEvent) => {
+      console.log('🏢 Project changed event:', e.detail);
+      loadTenant(e.detail);
+    };
+
     // Listen for localStorage changes (when project changes)
     const handleStorageChange = () => {
       const newTenantId = getTenantId();
-      if (currentTenant && newTenantId !== currentTenant.id) {
-        console.log('🏢 Project changed, reloading:', newTenantId);
-        loadTenant(newTenantId);
-      }
+      console.log('🏢 Storage changed, reloading:', newTenantId);
+      loadTenant(newTenantId);
     };
 
+    window.addEventListener('projectChanged', handleProjectChange as EventListener);
     window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, [currentTenant]);
+    
+    return () => {
+      window.removeEventListener('projectChanged', handleProjectChange as EventListener);
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []); // Empty dependency array to avoid infinite loops
 
   return {
     tenant: currentTenant,

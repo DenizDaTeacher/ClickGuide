@@ -169,8 +169,20 @@ export function useCallSteps() {
       const uniqueWorkflows = [...new Set(data?.map(step => step.workflow_name))];
       setWorkflows(uniqueWorkflows);
       
+      // Set default workflow - prioritize "Gesprächsschritte" as default
       if (uniqueWorkflows.length > 0 && !uniqueWorkflows.includes(currentWorkflow)) {
-        setCurrentWorkflow(uniqueWorkflows[0]);
+        const defaultWorkflow = uniqueWorkflows.includes('Gesprächsschritte') 
+          ? 'Gesprächsschritte' 
+          : uniqueWorkflows[0];
+        console.log('📁 Setting default workflow to:', defaultWorkflow);
+        setCurrentWorkflow(defaultWorkflow);
+      } else if (uniqueWorkflows.length > 0 && !currentWorkflow) {
+        // Also set default if no workflow is currently selected
+        const defaultWorkflow = uniqueWorkflows.includes('Gesprächsschritte') 
+          ? 'Gesprächsschritte' 
+          : uniqueWorkflows[0];
+        console.log('📁 No current workflow, setting default to:', defaultWorkflow);
+        setCurrentWorkflow(defaultWorkflow);
       }
     } catch (error) {
       console.error('Error loading workflows:', error);
