@@ -137,15 +137,14 @@ export function useCallSteps() {
         }
       ];
 
-      // Insert default steps
-      for (const step of defaultSteps) {
-        const { error } = await supabase
-          .from('call_steps')
-          .insert([step]);
-        
-        if (error) {
-          console.error('Error creating default step:', error);
-        }
+      // Insert all default steps at once
+      const { error } = await supabase
+        .from('call_steps')
+        .insert(defaultSteps);
+      
+      if (error) {
+        console.error('Error creating default steps:', error);
+        throw error;
       }
 
       console.log('✅ Default workflow created successfully');
@@ -738,13 +737,19 @@ export function useCallSteps() {
     if (tenantId && tenantId !== 'default') {
       console.log('🏢 Tenant changed, reloading data for:', tenantId);
       
-      // Create default workflow for new projects first
+      // Always create default workflow for non-default projects
       createDefaultWorkflow(tenantId).then(() => {
-        loadWorkflows();
+        console.log('🏢 Default workflow creation completed, loading workflows...');
+        loadWorkflows().then(() => {
+          console.log('🏢 Workflows loaded, loading steps...');
+          loadSteps();
+        });
         loadButtonTemplates();
       });
     } else if (tenantId === 'default') {
-      loadWorkflows();
+      loadWorkflows().then(() => {
+        loadSteps();
+      });
       loadButtonTemplates();
     }
   }, [tenantId]);
