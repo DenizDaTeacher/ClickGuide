@@ -36,7 +36,7 @@ const Index = () => {
       
       <div className="space-y-6">
         {/* Projekt Header */}
-        <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
+        <div className="flex items-center justify-between p-2 bg-muted rounded-lg">
           <div>
             <h2 className="text-xl font-semibold">Aktuelles Projekt: {currentProjectName}</h2>
           </div>
