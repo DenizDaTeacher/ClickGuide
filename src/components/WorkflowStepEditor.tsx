@@ -583,8 +583,25 @@ export function WorkflowStepEditor({
                             ))}
                           </div>
                           <Separator />
-                          <div className="text-xs text-muted-foreground">
-                            Oder geben Sie manuell ein Emoji oder Text ein
+                          <div className="space-y-2">
+                            <Input
+                              placeholder="Emoji-Name suchen (z.B. check, phone, warning)..."
+                              className="text-xs"
+                              onChange={(e) => {
+                                const searchTerm = e.target.value.toLowerCase();
+                                if (searchTerm) {
+                                  const matchingIcon = commonIcons.find(icon => 
+                                    icon.name.toLowerCase().includes(searchTerm)
+                                  );
+                                  if (matchingIcon) {
+                                    setButtonFormData(prev => ({ 
+                                      ...prev, 
+                                      icon: matchingIcon.icon 
+                                    }));
+                                  }
+                                }
+                              }}
+                            />
                           </div>
                         </div>
                       </PopoverContent>
