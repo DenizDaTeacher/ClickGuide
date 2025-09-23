@@ -10,8 +10,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CallStep, NextStepCondition, ActionButton, ButtonTemplate } from "@/hooks/useCallSteps";
-import { Plus, Trash2, Settings, MousePointer, Save, ChevronDown, ChevronRight, Palette, Star, Copy, Edit } from "lucide-react";
+import { 
+  Plus, Trash2, Settings, MousePointer, Save, ChevronDown, ChevronRight, 
+  Palette, Star, Copy, Edit, Check, X, AlertTriangle, Info, Phone, 
+  PhoneCall, PhoneOff, User, Clock, ArrowRight, ArrowLeft, Home,
+  Search, Settings2, RefreshCw, Pause, Play, Square, SkipForward
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface WorkflowStepEditorProps {
@@ -127,6 +133,29 @@ export function WorkflowStepEditor({
   const [isSubStepsOpen, setIsSubStepsOpen] = useState(true);
   const [isButtonsOpen, setIsButtonsOpen] = useState(true);
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
+  
+  // Icon picker data
+  const commonIcons = [
+    { icon: '✓', name: 'Check', component: Check },
+    { icon: '❌', name: 'X', component: X },
+    { icon: '⚠️', name: 'Warning', component: AlertTriangle },
+    { icon: '📞', name: 'Phone', component: Phone },
+    { icon: '☎️', name: 'Phone Call', component: PhoneCall },
+    { icon: '📵', name: 'Phone Off', component: PhoneOff },
+    { icon: '👤', name: 'User', component: User },
+    { icon: '⏰', name: 'Clock', component: Clock },
+    { icon: '▶️', name: 'Play', component: Play },
+    { icon: '⏸️', name: 'Pause', component: Pause },
+    { icon: '⏹️', name: 'Stop', component: Square },
+    { icon: '⏭️', name: 'Skip', component: SkipForward },
+    { icon: '🔄', name: 'Refresh', component: RefreshCw },
+    { icon: '➡️', name: 'Arrow Right', component: ArrowRight },
+    { icon: '⬅️', name: 'Arrow Left', component: ArrowLeft },
+    { icon: '🏠', name: 'Home', component: Home },
+    { icon: 'ℹ️', name: 'Info', component: Info },
+    { icon: '🔍', name: 'Search', component: Search },
+    { icon: '⚙️', name: 'Settings', component: Settings2 },
+  ];
 
   const handleInputChange = (field: keyof CallStep, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -519,12 +548,48 @@ export function WorkflowStepEditor({
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Button Icon (Emoji)</Label>
-                  <Input
-                    value={buttonFormData.icon || ''}
-                    onChange={(e) => setButtonFormData(prev => ({ ...prev, icon: e.target.value }))}
-                    placeholder="z.B. ✓, ✋, ⚠️, 📞"
-                  />
+                  <Label>Button Icon</Label>
+                  <div className="flex space-x-2">
+                    <Input
+                      value={buttonFormData.icon || ''}
+                      onChange={(e) => setButtonFormData(prev => ({ ...prev, icon: e.target.value }))}
+                      placeholder="Emoji oder Text eingeben"
+                      className="flex-1"
+                    />
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" size="icon">
+                          <Palette className="h-4 w-4" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-80 bg-background border shadow-lg z-50">
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium">Häufige Icons auswählen</Label>
+                          <div className="grid grid-cols-6 gap-2">
+                            {commonIcons.map((iconData) => (
+                              <Button
+                                key={iconData.icon}
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0 hover:bg-muted"
+                                onClick={() => setButtonFormData(prev => ({ 
+                                  ...prev, 
+                                  icon: iconData.icon 
+                                }))}
+                                title={iconData.name}
+                              >
+                                <span className="text-sm">{iconData.icon}</span>
+                              </Button>
+                            ))}
+                          </div>
+                          <Separator />
+                          <div className="text-xs text-muted-foreground">
+                            Oder geben Sie manuell ein Emoji oder Text ein
+                          </div>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
                 </div>
                 
                 <div className="space-y-2">
@@ -590,6 +655,44 @@ export function WorkflowStepEditor({
                       </div>
                     </div>
                   </div>
+                </div>
+              </div>
+
+              {/* Button & Status Preview */}
+              <div className="space-y-3">
+                <Label className="text-base font-medium">Vorschau</Label>
+                <div className="p-4 border rounded-lg bg-muted/20 space-y-3">
+                  <div>
+                    <Label className="text-sm text-muted-foreground">Button-Darstellung:</Label>
+                    <div className="mt-1">
+                      <Button 
+                        variant={buttonFormData.variant}
+                        size="sm"
+                        className="pointer-events-none"
+                      >
+                        {buttonFormData.icon && (
+                          <span className="mr-2">{buttonFormData.icon}</span>
+                        )}
+                        {buttonFormData.label || 'Button-Text'}
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  {buttonFormData.statusMessage && (
+                    <div>
+                      <Label className="text-sm text-muted-foreground">Status-Nachricht:</Label>
+                      <div className="mt-1 p-2 rounded border-l-4 border-l-primary bg-background">
+                        <div className="flex items-start space-x-2">
+                          {buttonFormData.statusIcon && (
+                            <span className="text-sm mt-0.5">{buttonFormData.statusIcon}</span>
+                          )}
+                          <div className="flex-1">
+                            <div className="text-sm">{buttonFormData.statusMessage}</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
