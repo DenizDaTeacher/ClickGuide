@@ -89,10 +89,11 @@ export function useCallSteps() {
         return;
       }
 
-      // Create default steps
+      // Create default steps with project-specific IDs
+      const projectPrefix = projectId.toLowerCase().replace(/[^a-z0-9]/g, '');
       const defaultSteps = [
         {
-          step_id: 'greeting',
+          step_id: `${projectPrefix}_greeting_${Date.now()}`,
           title: 'Begrüßung',
           description: 'Freundliche Begrüßung und Firmenvorstellung',
           communication: 'Guten Tag! Hier ist [Name] von [Firma]. Wie kann ich Ihnen heute helfen?',
@@ -114,7 +115,7 @@ export function useCallSteps() {
           ]
         },
         {
-          step_id: 'identification',
+          step_id: `${projectPrefix}_identification_${Date.now() + 1}`,
           title: 'Kundenidentifikation',
           description: 'Sicherheitsabfrage zur Identitätsprüfung',
           communication: 'Zur Sicherheit benötige ich von Ihnen bitte Ihren vollständigen Namen und Ihr Geburtsdatum.',
