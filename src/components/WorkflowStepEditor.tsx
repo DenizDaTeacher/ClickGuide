@@ -648,11 +648,8 @@ export function WorkflowStepEditor({
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="complete">Schritt abschließen</SelectItem>
-                      <SelectItem value="next">Zum nächsten Schritt</SelectItem>
-                      <SelectItem value="skip">Schritt überspringen</SelectItem>
-                      <SelectItem value="restart">Neu starten</SelectItem>
-                      <SelectItem value="pause">Pausieren</SelectItem>
-                      <SelectItem value="custom">Benutzerdefiniert</SelectItem>
+                      <SelectItem value="end">Gespräch beenden</SelectItem>
+                      <SelectItem value="info">Hinweis in Statusmeldung anzeigen</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
