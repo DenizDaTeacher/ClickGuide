@@ -337,8 +337,33 @@ export function WorkflowStepEditor({
   const handleSaveSubStep = () => {
     const updatedSubSteps = [...(formData.subSteps || [])];
     
+    // Create a complete CallStep object with all required properties
+    const completeSubStep: CallStep = {
+      id: subStepFormData.id || `substep-${Date.now()}`,
+      title: subStepFormData.title || '',
+      description: subStepFormData.description || '',
+      communication: subStepFormData.communication || '',
+      stepType: subStepFormData.stepType || 'sub_step',
+      required: subStepFormData.required || false,
+      completed: false,
+      category: subStepFormData.category || '',
+      parentStepId: subStepFormData.parentStepId || formData.id,
+      workflowName: subStepFormData.workflowName || formData.workflowName,
+      actionButtons: subStepFormData.actionButtons || [],
+      statusBackgroundColor: subStepFormData.statusBackgroundColor || '',
+      statusIcon: subStepFormData.statusIcon || '',
+      sortOrder: subStepFormData.sortOrder || 0,
+      nextStepConditions: subStepFormData.nextStepConditions || [],
+      positionX: subStepFormData.positionX || 0,
+      positionY: subStepFormData.positionY || 0,
+      isStartStep: subStepFormData.isStartStep || false,
+      isEndStep: subStepFormData.isEndStep || false,
+      conditionLabel: subStepFormData.conditionLabel,
+      subSteps: subStepFormData.subSteps || []
+    };
+    
     // Ensure default button if no buttons exist
-    const processedSubStep = ensureDefaultButton(subStepFormData as CallStep);
+    const processedSubStep = ensureDefaultButton(completeSubStep);
     
     if (editingSubStepIndex !== null) {
       updatedSubSteps[editingSubStepIndex] = processedSubStep;
