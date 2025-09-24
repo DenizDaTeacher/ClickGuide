@@ -190,7 +190,16 @@ export function WorkflowStepEditor({
   };
 
   const handleSave = () => {
+    console.log('💾 Saving step in editor:', { 
+      title: formData.title, 
+      actionButtons: formData.actionButtons?.length,
+      stepType: formData.stepType
+    });
     const finalData = ensureDefaultButton(formData);
+    console.log('💾 Final data being saved:', { 
+      title: finalData.title, 
+      actionButtons: finalData.actionButtons?.length 
+    });
     onSave(finalData);
   };
 

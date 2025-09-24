@@ -244,8 +244,9 @@ export function useCallSteps() {
         }));
         
         // Organize sub-steps under their parent steps
-        const mainSteps = formattedSteps.filter(step => !step.parentStepId);
-        const subSteps = formattedSteps.filter(step => step.parentStepId);
+        // Filter out steps that are marked as sub_step but have no parentStepId (corrupted data)
+        const mainSteps = formattedSteps.filter(step => !step.parentStepId && step.stepType !== 'sub_step');
+        const subSteps = formattedSteps.filter(step => step.parentStepId && step.stepType === 'sub_step');
         
         console.log('📊 Loading steps for workflow:', targetWorkflow);
         console.log('📊 Total formatted steps:', formattedSteps.length);
