@@ -500,6 +500,7 @@ export function useCallSteps() {
             step_type: 'sub_step',
             condition_label: subStep.conditionLabel,
             next_step_conditions: subStep.nextStepConditions,
+            action_buttons: JSON.parse(JSON.stringify(subStep.actionButtons)) as Json || [],
             position_x: subStep.positionX || 0,
             position_y: subStep.positionY || 0,
             is_start_step: false,
@@ -507,6 +508,8 @@ export function useCallSteps() {
             category: subStep.category,
             workflow_name: currentWorkflow,
             tenant_id: tenantId,
+            status_background_color: subStep.statusBackgroundColor,
+            status_icon: subStep.statusIcon
           };
           
           const { data: existingSubStep } = await supabase
