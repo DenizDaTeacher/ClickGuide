@@ -51,9 +51,80 @@ interface SortableStepCardProps {
   index: number;
   onEdit: (step: CallStep) => void;
   onDelete: (stepId: string) => void;
+  onUpdateStep: (step: CallStep) => void;
 }
 
-function SortableStepCard({ step, index, onEdit, onDelete }: SortableStepCardProps) {
+interface SortableSubStepProps {
+  subStep: CallStep;
+  parentIndex: number;
+  subIndex: number;
+  onEdit: (step: CallStep) => void;
+  onDelete: (stepId: string) => void;
+}
+
+function SortableSubStep({ subStep, parentIndex, subIndex, onEdit, onDelete }: SortableSubStepProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: subStep.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div 
+      ref={setNodeRef}
+      style={style}
+      className={`flex items-center justify-between p-2 bg-muted/30 rounded border-l-2 border-primary/30 ${isDragging ? 'z-50' : ''}`}
+    >
+      <div className="flex items-center space-x-2">
+        <div
+          {...attributes}
+          {...listeners}
+          className="cursor-grab active:cursor-grabbing p-1 hover:bg-muted rounded"
+        >
+          <GripVertical className="w-3 h-3 text-muted-foreground" />
+        </div>
+        <span className="text-xs font-medium text-muted-foreground">
+          {parentIndex + 1}.{subIndex + 1}
+        </span>
+        <span className="text-sm">{subStep.title}</span>
+        {subStep.category && (
+          <Badge variant="outline" className="text-xs">
+            {subStep.category}
+          </Badge>
+        )}
+      </div>
+      <div className="flex items-center space-x-1">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => onEdit(subStep)}
+          className="h-6 w-6 p-0"
+        >
+          <Edit className="w-3 h-3" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => onDelete(subStep.id)}
+          className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+        >
+          <Trash2 className="w-3 h-3" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function SortableStepCard({ step, index, onEdit, onDelete, onUpdateStep }: SortableStepCardProps) {
   const {
     attributes,
     listeners,
@@ -63,10 +134,35 @@ function SortableStepCard({ step, index, onEdit, onDelete }: SortableStepCardPro
     isDragging,
   } = useSortable({ id: step.id });
 
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
+  };
+
+  const handleSubStepDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id && step.subSteps) {
+      const oldIndex = step.subSteps.findIndex(subStep => subStep.id === active.id);
+      const newIndex = step.subSteps.findIndex(subStep => subStep.id === over.id);
+      
+      const reorderedSubSteps = arrayMove(step.subSteps, oldIndex, newIndex);
+      
+      const updatedStep = {
+        ...step,
+        subSteps: reorderedSubSteps
+      };
+      
+      onUpdateStep(updatedStep);
+    }
   };
 
   return (
@@ -141,44 +237,29 @@ function SortableStepCard({ step, index, onEdit, onDelete }: SortableStepCardPro
         {step.subSteps && step.subSteps.length > 0 && (
           <div className="mt-4">
             <h4 className="text-sm font-medium mb-2">Unterschritte:</h4>
-            <div className="space-y-2">
-              {step.subSteps.map((subStep, subIndex) => (
-                <div 
-                  key={subStep.id}
-                  className="flex items-center justify-between p-2 bg-muted/30 rounded border-l-2 border-primary/30"
-                >
-                  <div className="flex items-center space-x-2">
-                    <span className="text-xs font-medium text-muted-foreground">
-                      {index + 1}.{subIndex + 1}
-                    </span>
-                    <span className="text-sm">{subStep.title}</span>
-                    {subStep.category && (
-                      <Badge variant="outline" className="text-xs">
-                        {subStep.category}
-                      </Badge>
-                    )}
-                  </div>
-                  <div className="flex items-center space-x-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onEdit(subStep)}
-                      className="h-6 w-6 p-0"
-                    >
-                      <Edit className="w-3 h-3" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onDelete(subStep.id)}
-                      className="h-6 w-6 p-0 text-destructive hover:text-destructive"
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </Button>
-                  </div>
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleSubStepDragEnd}
+            >
+              <SortableContext
+                items={step.subSteps.map(subStep => subStep.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                <div className="space-y-2">
+                  {step.subSteps.map((subStep, subIndex) => (
+                    <SortableSubStep
+                      key={subStep.id}
+                      subStep={subStep}
+                      parentIndex={index}
+                      subIndex={subIndex}
+                      onEdit={onEdit}
+                      onDelete={onDelete}
+                    />
+                  ))}
                 </div>
-              ))}
-            </div>
+              </SortableContext>
+            </DndContext>
           </div>
         )}
       </CardContent>
@@ -207,6 +288,11 @@ export default function EditorMode({
   const [isCreatingNew, setIsCreatingNew] = useState(false);
   const [newWorkflowName, setNewWorkflowName] = useState("");
   const [showNewWorkflowDialog, setShowNewWorkflowDialog] = useState(false);
+
+  const handleStepUpdate = (updatedStep: CallStep) => {
+    console.log('🔄 Updating step:', updatedStep.title);
+    onSaveStep(updatedStep, false);
+  };
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -412,6 +498,7 @@ export default function EditorMode({
                     index={index}
                     onEdit={handleEdit}
                     onDelete={onDeleteStep}
+                    onUpdateStep={handleStepUpdate}
                   />
                 ))}
               </div>
