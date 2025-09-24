@@ -129,6 +129,19 @@ export function WorkflowStepEditor({
   const [editingSubStepIndex, setEditingSubStepIndex] = useState<number | null>(null);
   const [subStepFormData, setSubStepFormData] = useState<Partial<CallStep>>({});
   
+  // Sub-step button configuration
+  const [showSubStepButtonDialog, setShowSubStepButtonDialog] = useState(false);
+  const [editingSubStepButtonIndex, setEditingSubStepButtonIndex] = useState<number | null>(null);
+  const [subStepButtonFormData, setSubStepButtonFormData] = useState<ActionButton>({
+    id: '',
+    label: '',
+    variant: 'default',
+    actionType: 'complete',
+    statusMessage: '',
+    icon: '',
+    enabled: true
+  });
+  
   // Collapsible sections state
   const [isSubStepsOpen, setIsSubStepsOpen] = useState(true);
   const [isButtonsOpen, setIsButtonsOpen] = useState(true);
@@ -324,14 +337,57 @@ export function WorkflowStepEditor({
   const handleSaveSubStep = () => {
     const updatedSubSteps = [...(formData.subSteps || [])];
     
+    // Ensure default button if no buttons exist
+    const processedSubStep = ensureDefaultButton(subStepFormData as CallStep);
+    
     if (editingSubStepIndex !== null) {
-      updatedSubSteps[editingSubStepIndex] = subStepFormData as CallStep;
+      updatedSubSteps[editingSubStepIndex] = processedSubStep;
     } else {
-      updatedSubSteps.push(subStepFormData as CallStep);
+      updatedSubSteps.push(processedSubStep);
     }
     
     setFormData(prev => ({ ...prev, subSteps: updatedSubSteps }));
     setShowSubStepDialog(false);
+  };
+
+  // Sub-step button management functions
+  const handleAddSubStepButton = () => {
+    setEditingSubStepButtonIndex(null);
+    setSubStepButtonFormData({
+      id: `action-${Date.now()}`,
+      label: '',
+      variant: 'default',
+      actionType: 'complete',
+      statusMessage: '',
+      icon: '',
+      enabled: true
+    });
+    setShowSubStepButtonDialog(true);
+  };
+
+  const handleEditSubStepButton = (index: number) => {
+    const buttons = subStepFormData.actionButtons || [];
+    setEditingSubStepButtonIndex(index);
+    setSubStepButtonFormData({ ...buttons[index] });
+    setShowSubStepButtonDialog(true);
+  };
+
+  const handleSaveSubStepButton = () => {
+    const updatedButtons = [...(subStepFormData.actionButtons || [])];
+    
+    if (editingSubStepButtonIndex !== null) {
+      updatedButtons[editingSubStepButtonIndex] = subStepButtonFormData;
+    } else {
+      updatedButtons.push(subStepButtonFormData);
+    }
+    
+    setSubStepFormData(prev => ({ ...prev, actionButtons: updatedButtons }));
+    setShowSubStepButtonDialog(false);
+  };
+
+  const handleDeleteSubStepButton = (index: number) => {
+    const updatedButtons = subStepFormData.actionButtons?.filter((_, i) => i !== index) || [];
+    setSubStepFormData(prev => ({ ...prev, actionButtons: updatedButtons }));
   };
 
   const handleDeleteSubStep = (index: number) => {
@@ -849,14 +905,14 @@ export function WorkflowStepEditor({
       {/* Sub-Step Dialog */}
       {showSubStepDialog && (
         <Dialog open={showSubStepDialog} onOpenChange={setShowSubStepDialog}>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
                 {editingSubStepIndex !== null ? 'Unterschritt bearbeiten' : 'Neuen Unterschritt erstellen'}
               </DialogTitle>
             </DialogHeader>
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Titel *</Label>
                   <Input
@@ -905,6 +961,58 @@ export function WorkflowStepEditor({
                 <Label htmlFor="subStepRequired">Pflicht-Unterschritt</Label>
               </div>
 
+              <Separator />
+
+              {/* Action Buttons Section for Sub-Steps */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label>Aktions-Buttons</Label>
+                  <Button onClick={handleAddSubStepButton} size="sm">
+                    <Plus className="w-4 h-4 mr-1" />
+                    Button hinzufügen
+                  </Button>
+                </div>
+                
+                {subStepFormData.actionButtons && subStepFormData.actionButtons.length > 0 && (
+                  <div className="space-y-2">
+                    {subStepFormData.actionButtons.map((button, index) => (
+                      <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                        <div className="flex items-center space-x-3">
+                          <span className="text-lg">{button.icon}</span>
+                          <div>
+                            <div className="font-medium">{button.label}</div>
+                            <div className="text-sm text-muted-foreground">
+                              {button.actionType === 'complete' && 'Schritt abschließen'}
+                              {button.actionType === 'fail' && 'Gespräch beenden'}  
+                              {button.actionType === 'info' && 'Hinweis in Statusmeldung anzeigen'}
+                              {button.actionType === 'custom' && 'Benutzerdefiniert'}
+                              {' • '}
+                              {button.variant}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-1">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleEditSubStepButton(index)}
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleDeleteSubStepButton(index)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               <div className="flex justify-end space-x-2 pt-4">
                 <Button variant="outline" onClick={() => setShowSubStepDialog(false)}>
                   Abbrechen
@@ -915,6 +1023,193 @@ export function WorkflowStepEditor({
                 >
                   <Save className="w-4 h-4 mr-1" />
                   Speichern
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Sub-Step Button Configuration Dialog */}
+      {showSubStepButtonDialog && (
+        <Dialog open={showSubStepButtonDialog} onOpenChange={setShowSubStepButtonDialog}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>
+                {editingSubStepButtonIndex !== null ? 'Button bearbeiten' : 'Neuen Button erstellen'}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Button-Text</Label>
+                  <Input
+                    value={subStepButtonFormData.label}
+                    onChange={(e) => setSubStepButtonFormData(prev => ({ ...prev, label: e.target.value }))}
+                    placeholder="z.B. Schritt abgeschlossen"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Aktion</Label>
+                  <Select
+                    value={subStepButtonFormData.actionType}
+                    onValueChange={(value) => setSubStepButtonFormData(prev => ({ 
+                      ...prev, 
+                      actionType: value as ActionButton['actionType'] 
+                    }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-background border shadow-lg z-50">
+                      <SelectItem value="complete">Schritt abschließen</SelectItem>
+                      <SelectItem value="fail">Gespräch beenden</SelectItem>
+                      <SelectItem value="info">Hinweis in Statusmeldung anzeigen</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Button-Stil</Label>
+                <Select
+                  value={subStepButtonFormData.variant}
+                  onValueChange={(value) => setSubStepButtonFormData(prev => ({ 
+                    ...prev, 
+                    variant: value as ActionButton['variant'] 
+                  }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background border shadow-lg z-50">
+                    <SelectItem value="default">Standard</SelectItem>
+                    <SelectItem value="destructive">Destruktiv</SelectItem>
+                    <SelectItem value="outline">Umriss</SelectItem>
+                    <SelectItem value="secondary">Sekundär</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Icon</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full justify-start">
+                      <span className="mr-2">{subStepButtonFormData.icon || '📄'}</span>
+                      Icon auswählen
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80 max-h-60 overflow-y-auto bg-background border shadow-lg z-50">
+                    <div className="grid grid-cols-6 gap-2">
+                      {commonIcons.map((iconItem) => (
+                        <Button
+                          key={iconItem.name}
+                          variant={subStepButtonFormData.icon === iconItem.icon ? "default" : "ghost"}
+                          size="sm"
+                          className="h-8 w-8 p-0"
+                          onClick={() => setSubStepButtonFormData(prev => ({ 
+                            ...prev, 
+                            icon: iconItem.icon 
+                          }))}
+                          title={iconItem.name}
+                        >
+                          {iconItem.icon}
+                        </Button>
+                      ))}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              {subStepButtonFormData.actionType === 'info' && (
+                <>
+                  <div className="space-y-2">
+                    <Label>Statusmeldung</Label>
+                    <Textarea
+                      value={subStepButtonFormData.statusMessage || ''}
+                      onChange={(e) => setSubStepButtonFormData(prev => ({ 
+                        ...prev, 
+                        statusMessage: e.target.value 
+                      }))}
+                      placeholder="Diese Nachricht wird in der Statusleiste angezeigt"
+                      rows={3}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Status Icon</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" className="w-full justify-start">
+                          <span className="mr-2">{subStepButtonFormData.statusIcon || '📄'}</span>
+                          Status Icon auswählen
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-80 max-h-60 overflow-y-auto bg-background border shadow-lg z-50">
+                        <div className="grid grid-cols-6 gap-2">
+                          {statusIcons.map((iconItem) => (
+                            <Button
+                              key={iconItem.name}
+                              variant={subStepButtonFormData.statusIcon === iconItem.icon ? "default" : "ghost"}
+                              size="sm"
+                              className="h-8 w-8 p-0"
+                              onClick={() => setSubStepButtonFormData(prev => ({ 
+                                ...prev, 
+                                statusIcon: iconItem.icon 
+                              }))}
+                              title={iconItem.name}
+                            >
+                              {iconItem.icon}
+                            </Button>
+                          ))}
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                </>
+              )}
+
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label>Button-Vorlagen anwenden</Label>
+                </div>
+                {buttonTemplates && buttonTemplates.length > 0 && (
+                  <div className="grid grid-cols-2 gap-2">
+                    {buttonTemplates.map((template) => (
+                      <Button
+                        key={template.id}
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setSubStepButtonFormData(prev => ({
+                            ...prev,
+                            label: template.label,
+                            variant: template.variant,
+                            icon: template.icon || '',
+                            actionType: template.actionType,
+                            statusMessage: template.statusMessage || '',
+                            templateName: template.name,
+                            statusIcon: template.statusIcon,
+                            statusBackgroundColor: template.statusBackgroundColor
+                          }));
+                        }}
+                        className="justify-start"
+                      >
+                        <span className="mr-2">{template.icon}</span>
+                        {template.name}
+                      </Button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end space-x-2">
+                <Button variant="outline" onClick={() => setShowSubStepButtonDialog(false)}>
+                  Abbrechen
+                </Button>
+                <Button onClick={handleSaveSubStepButton}>
+                  {editingSubStepButtonIndex !== null ? 'Speichern' : 'Hinzufügen'}
                 </Button>
               </div>
             </div>
