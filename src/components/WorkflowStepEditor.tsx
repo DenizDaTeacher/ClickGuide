@@ -520,62 +520,64 @@ export function WorkflowStepEditor({
             </Card>
           )}
 
-          {/* Sub-Steps Section */}
-          <Collapsible open={isSubStepsOpen} onOpenChange={setIsSubStepsOpen}>
-            <CollapsibleTrigger asChild>
-              <Button variant="ghost" className="w-full justify-between p-0">
-                <div className="flex items-center space-x-2">
-                  <Label className="text-base font-medium">Unterschritte</Label>
-                  <Badge variant="secondary">{formData.subSteps?.length || 0}</Badge>
-                </div>
-                {isSubStepsOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-              </Button>
-            </CollapsibleTrigger>
-            <CollapsibleContent className="space-y-4">
-              <div className="flex justify-between items-center">
-                <p className="text-sm text-muted-foreground">
-                  Unterschritte werden als untergeordnete Aufgaben angezeigt
-                </p>
-                <Button onClick={handleAddSubStep} size="sm" variant="outline">
-                  <Plus className="w-4 h-4 mr-1" />
-                  Unterschritt hinzufügen
+          {/* Sub-Steps Section - Only show if NOT a topic step */}
+          {!formData.isTopicStep && (
+            <Collapsible open={isSubStepsOpen} onOpenChange={setIsSubStepsOpen}>
+              <CollapsibleTrigger asChild>
+                <Button variant="ghost" className="w-full justify-between p-0">
+                  <div className="flex items-center space-x-2">
+                    <Label className="text-base font-medium">Unterschritte</Label>
+                    <Badge variant="secondary">{formData.subSteps?.filter(s => !s.parentTopicId)?.length || 0}</Badge>
+                  </div>
+                  {isSubStepsOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                 </Button>
-              </div>
-              
-              {formData.subSteps && formData.subSteps.length > 0 && (
-                <div className="space-y-2">
-                  {formData.subSteps.map((subStep, index) => (
-                    <Card key={index} className="border-l-4 border-l-primary/30">
-                      <CardContent className="p-3">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <div className="font-medium text-sm">{subStep.title}</div>
-                            <div className="text-xs text-muted-foreground">{subStep.description}</div>
-                          </div>
-                          <div className="flex items-center space-x-1">
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => handleEditSubStep(index)}
-                            >
-                              <Edit className="w-3 h-3" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => handleDeleteSubStep(index)}
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </Button>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+              </CollapsibleTrigger>
+              <CollapsibleContent className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <p className="text-sm text-muted-foreground">
+                    Unterschritte werden als untergeordnete Aufgaben angezeigt
+                  </p>
+                  <Button onClick={handleAddSubStep} size="sm" variant="outline">
+                    <Plus className="w-4 h-4 mr-1" />
+                    Unterschritt hinzufügen
+                  </Button>
                 </div>
-              )}
-            </CollapsibleContent>
-          </Collapsible>
+                
+                {formData.subSteps && formData.subSteps.filter(s => !s.parentTopicId).length > 0 && (
+                  <div className="space-y-2">
+                    {formData.subSteps.filter(s => !s.parentTopicId).map((subStep, index) => (
+                      <Card key={index} className="border-l-4 border-l-primary/30">
+                        <CardContent className="p-3">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <div className="font-medium text-sm">{subStep.title}</div>
+                              <div className="text-xs text-muted-foreground">{subStep.description}</div>
+                            </div>
+                            <div className="flex items-center space-x-1">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleEditSubStep(index)}
+                              >
+                                <Edit className="w-3 h-3" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleDeleteSubStep(index)}
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </CollapsibleContent>
+            </Collapsible>
+          )}
 
           <Separator />
 

@@ -250,21 +250,27 @@ export function useCallSteps() {
         }));
         
         // Organize sub-steps under their parent steps
-        // Filter out steps that are marked as sub_step but have no parentStepId (corrupted data)
+        // Topic sub-steps (with parentTopicId) should be separate from normal sub-steps
+        // Normal sub-steps (without parentTopicId) should be nested under their parent
+        const topicSubSteps = formattedSteps.filter(step => step.parentTopicId);
+        const normalSubSteps = formattedSteps.filter(step => step.parentStepId && step.stepType === 'sub_step' && !step.parentTopicId);
         const mainSteps = formattedSteps.filter(step => !step.parentStepId && step.stepType !== 'sub_step');
-        const subSteps = formattedSteps.filter(step => step.parentStepId && step.stepType === 'sub_step');
         
         console.log('📊 Loading steps for workflow:', targetWorkflow);
         console.log('📊 Total formatted steps:', formattedSteps.length);
         console.log('📊 Main steps:', mainSteps.length);
-        console.log('📊 Sub steps:', subSteps.length);
+        console.log('📊 Normal sub steps:', normalSubSteps.length);
+        console.log('📊 Topic sub steps:', topicSubSteps.length);
         console.log('📊 Main steps data:', mainSteps.map(s => ({id: s.id, title: s.title, sortOrder: s.sortOrder})));
         
+        // Attach normal sub-steps to their parent steps
         mainSteps.forEach(mainStep => {
-          mainStep.subSteps = subSteps.filter(sub => sub.parentStepId === mainStep.id);
+          mainStep.subSteps = normalSubSteps.filter(sub => sub.parentStepId === mainStep.id);
         });
         
-        setSteps(mainSteps);
+        // Include both main steps and topic sub-steps in the final array
+        // Topic sub-steps need to be in the array for getSubStepsForTopic to find them
+        setSteps([...mainSteps, ...topicSubSteps]);
       }
     } catch (error) {
       console.error('Error loading steps:', error);
