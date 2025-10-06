@@ -617,8 +617,6 @@ export default function AgentMode({
                 </Button>}
             </CardContent>
           </Card>
-          
-          <SalesCoach />
         </div>}
 
       {callActive && !currentStep && <Card className="shadow-elevated">
