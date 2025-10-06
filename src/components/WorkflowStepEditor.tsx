@@ -498,6 +498,15 @@ export function WorkflowStepEditor({
             <Label htmlFor="isTopicStep">Anliegen-Schritt (mit Themenauswahl)</Label>
           </div>
 
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="isServicePlusStep"
+              checked={formData.isServicePlusStep || false}
+              onCheckedChange={(checked) => handleInputChange('isServicePlusStep', checked)}
+            />
+            <Label htmlFor="isServicePlusStep">ServicePlus (Sales-Ansprache aktivieren)</Label>
+          </div>
+
           {/* Topic Manager - only show if this is a topic step */}
           {formData.isTopicStep && formData.id && (
             <Card className="border-primary/30">

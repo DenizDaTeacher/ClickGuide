@@ -72,6 +72,7 @@ export type Database = {
           description: string
           id: string
           is_end_step: boolean | null
+          is_service_plus_step: boolean | null
           is_start_step: boolean | null
           is_topic_step: boolean | null
           next_step_conditions: Json | null
@@ -100,6 +101,7 @@ export type Database = {
           description: string
           id?: string
           is_end_step?: boolean | null
+          is_service_plus_step?: boolean | null
           is_start_step?: boolean | null
           is_topic_step?: boolean | null
           next_step_conditions?: Json | null
@@ -128,6 +130,7 @@ export type Database = {
           description?: string
           id?: string
           is_end_step?: boolean | null
+          is_service_plus_step?: boolean | null
           is_start_step?: boolean | null
           is_topic_step?: boolean | null
           next_step_conditions?: Json | null

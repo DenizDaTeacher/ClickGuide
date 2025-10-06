@@ -438,6 +438,13 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
                   </div>
                 )}
 
+                {/* ServicePlus Coach for ServicePlus Steps */}
+                {currentStep?.isServicePlusStep && (
+                  <div className="mt-4">
+                    <SalesCoach />
+                  </div>
+                )}
+
                 {/* Branch Options */}
                 {!currentStep?.isTopicStep && currentStep?.nextStepConditions.length > 0 ? (
                   <div className="space-y-3">
