@@ -35,9 +35,9 @@ export default function AgentMode({
   const [currentSubStepIndex, setCurrentSubStepIndex] = useState<number | null>(null);
   const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null);
   const [filteredSteps, setFilteredSteps] = useState<CallStep[]>(steps);
-  const [showTopicSelector, setShowTopicSelector] = useState(false);
   const [showSalesCoach, setShowSalesCoach] = useState(false);
   const [topicSubSteps, setTopicSubSteps] = useState<CallStep[]>([]);
+  const [expandedTopics, setExpandedTopics] = useState<Set<string>>(new Set());
   const completedSteps = stepHistory.length;
   const totalSteps = filteredSteps.length;
   const requiredSteps = filteredSteps.filter(step => step.required);
@@ -55,8 +55,27 @@ export default function AgentMode({
     }
   }, [selectedTopic, steps]);
   const handleTopicSelect = async (topic: Topic) => {
+    // Check if already expanded
+    const isExpanded = expandedTopics.has(topic.id);
+    
+    if (isExpanded) {
+      // Collapse
+      const newExpanded = new Set(expandedTopics);
+      newExpanded.delete(topic.id);
+      setExpandedTopics(newExpanded);
+      if (selectedTopic?.id === topic.id) {
+        setSelectedTopic(null);
+        setTopicSubSteps([]);
+        setCurrentSubStepIndex(null);
+      }
+      return;
+    }
+    
+    // Expand and load sub-steps
+    const newExpanded = new Set(expandedTopics);
+    newExpanded.add(topic.id);
+    setExpandedTopics(newExpanded);
     setSelectedTopic(topic);
-    setShowTopicSelector(false);
 
     // Load sub-steps for this topic
     try {
@@ -383,33 +402,31 @@ export default function AgentMode({
                       <Info className="w-4 h-4 mr-2" />
                       Wählen Sie ein Anliegen:
                     </h3>
+                    {topics.filter(topic => topic.step_id === currentStep.id).length === 0 ? (
+                      <div className="p-4 border border-dashed rounded-lg text-center text-muted-foreground">
+                        <p className="text-sm">Keine Anliegen für diesen Schritt definiert.</p>
+                        <p className="text-xs mt-1">Fügen Sie im Editor-Modus Anliegen hinzu.</p>
+                      </div>
+                    ) : (
                     <div className="space-y-2">
                       {topics.filter(topic => topic.step_id === currentStep.id).map(topic => {
-                  const isSelected = selectedTopic?.id === topic.id;
-                  const subSteps = isSelected ? topicSubSteps : [];
+                  const isExpanded = expandedTopics.has(topic.id);
+                  const subSteps = isExpanded ? topicSubSteps : [];
                   return <div key={topic.id} className="border rounded-lg overflow-hidden border-border/50" style={{
                     borderColor: topic.color ? `${topic.color}40` : undefined
                   }}>
-                              <Button onClick={() => {
-                      if (isSelected) {
-                        setSelectedTopic(null);
-                        setTopicSubSteps([]);
-                        setCurrentSubStepIndex(null);
-                      } else {
-                        handleTopicSelect(topic);
-                      }
-                    }} variant={isSelected ? "secondary" : "ghost"} className="w-full justify-start h-auto p-4 rounded-none border-0 hover:bg-muted/50">
-                                <div className="text-left flex items-center gap-3 w-full">
+                              <Button onClick={() => handleTopicSelect(topic)} variant={isExpanded ? "secondary" : "ghost"} className="w-full justify-start h-auto p-4 rounded-none border-0 hover:bg-muted/50">
+                                  <div className="text-left flex items-center gap-3 w-full">
                                   {topic.icon && <span className="text-2xl">{topic.icon}</span>}
                                   <div className="flex-1">
                                     <div className="font-medium">{topic.name}</div>
                                     {topic.description && <div className="text-sm text-muted-foreground">{topic.description}</div>}
                                   </div>
-                                  <ChevronDown className={`w-4 h-4 transition-transform ${isSelected ? 'rotate-180' : ''}`} />
+                                  <ChevronDown className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                                 </div>
                               </Button>
                               
-                              {isSelected && subSteps.length > 0 && <div className="bg-muted/20 p-4 space-y-2">
+                              {isExpanded && subSteps.length > 0 && <div className="bg-muted/20 p-4 space-y-2">
                                   <h4 className="text-sm font-medium mb-2 text-muted-foreground">Unterschritte:</h4>
                                   {subSteps.map((subStep, index) => <div key={subStep.id} className={`p-3 rounded-lg border-l-2 ${currentSubStepIndex === index ? 'bg-muted/30 border-l-primary/60' : 'bg-background/50 border-l-border'}`}>
                                       <div className="flex items-center gap-2 mb-1">
@@ -419,14 +436,15 @@ export default function AgentMode({
                                       </div>
                                       {currentSubStepIndex === index && subStep.description && <p className="text-sm text-muted-foreground mt-2">{subStep.description}</p>}
                                     </div>)}
-                                </div>}
+                                  </div>}
                               
-                              {isSelected && subSteps.length === 0 && <div className="bg-muted/10 p-4 text-center text-sm text-muted-foreground">
+                              {isExpanded && subSteps.length === 0 && <div className="bg-muted/10 p-4 text-center text-sm text-muted-foreground">
                                   Keine Unterschritte definiert
                                 </div>}
                             </div>;
                 })}
                     </div>
+                    )}
                   </div>}
 
                 {/* ServicePlus Coach for ServicePlus Steps */}
@@ -461,11 +479,6 @@ export default function AgentMode({
                             {button.icon && <span className="mr-2">{button.icon}</span>}
                             {button.label}
                           </Button>;
-              })}
-                    
-                    {/* Custom action buttons from main step (if we're in a sub-step) */}
-                    {currentSubStepIndex !== null && currentStep && currentStep.actionButtons && currentStep.actionButtons.filter(button => button.enabled !== false).filter(button => !currentDisplayStep?.actionButtons?.some(subButton => subButton.id === button.id)).map(button => {
-                return;
               })}
                     
                     {/* Legacy decision button for backward compatibility */}
@@ -606,8 +619,6 @@ export default function AgentMode({
           </Card>
           
           <SalesCoach />
-          
-          {showTopicSelector && <TopicSelector onSelectTopic={handleTopicSelect} selectedTopicId={selectedTopic?.id} />}
         </div>}
 
       {callActive && !currentStep && <Card className="shadow-elevated">
