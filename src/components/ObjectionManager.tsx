@@ -37,8 +37,6 @@ export const ObjectionManager = () => {
     setEditingObjection({
       title: '',
       keywords: [],
-      category: '',
-      priority: 0,
     });
     setIsObjectionDialogOpen(true);
   };
@@ -93,38 +91,14 @@ export const ObjectionManager = () => {
             </DialogHeader>
             <div className="space-y-4">
               <div>
-                <Label htmlFor="title">Titel</Label>
+                <Label htmlFor="title">Titel des Einwands</Label>
                 <Input
                   id="title"
                   value={editingObjection?.title || ''}
                   onChange={(e) =>
                     setEditingObjection({ ...editingObjection, title: e.target.value })
                   }
-                  placeholder="z.B. Zu teuer"
-                />
-              </div>
-              <div>
-                <Label htmlFor="category">Kategorie</Label>
-                <Input
-                  id="category"
-                  value={editingObjection?.category || ''}
-                  onChange={(e) =>
-                    setEditingObjection({ ...editingObjection, category: e.target.value })
-                  }
-                  placeholder="z.B. Preis"
-                />
-              </div>
-              <div>
-                <Label htmlFor="priority">Priorität (0-10)</Label>
-                <Input
-                  id="priority"
-                  type="number"
-                  min="0"
-                  max="10"
-                  value={editingObjection?.priority || 0}
-                  onChange={(e) =>
-                    setEditingObjection({ ...editingObjection, priority: parseInt(e.target.value) })
-                  }
+                  placeholder="z.B. Zu teuer, Kein Interesse, etc."
                 />
               </div>
               <div>
@@ -171,10 +145,7 @@ export const ObjectionManager = () => {
                   <div className="flex items-center justify-between w-full pr-4">
                     <div className="flex items-center gap-2">
                       <CardTitle>{objection.title}</CardTitle>
-                      {objection.category && (
-                        <Badge variant="outline">{objection.category}</Badge>
-                      )}
-                      <Badge>Priorität: {objection.priority}</Badge>
+                      <Badge variant="secondary">{objection.responses.length} Antworten</Badge>
                     </div>
                     <div className="flex gap-2">
                       <Button

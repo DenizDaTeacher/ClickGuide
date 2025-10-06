@@ -63,8 +63,6 @@ export const useObjections = () => {
           .update({
             title: objection.title,
             keywords: objection.keywords,
-            category: objection.category,
-            priority: objection.priority,
             updated_at: new Date().toISOString(),
           })
           .eq('id', objection.id);
@@ -78,8 +76,8 @@ export const useObjections = () => {
             tenant_id: tenantId,
             title: objection.title || 'Neuer Einwand',
             keywords: objection.keywords || [],
-            category: objection.category,
-            priority: objection.priority || 0,
+            category: null,
+            priority: 0,
           });
 
         if (error) throw error;

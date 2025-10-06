@@ -60,11 +60,6 @@ export const SalesCoach = () => {
                 className={selectedObjection?.id === objection.id ? 'border-primary' : ''}
               >
                 {objection.title}
-                {objection.category && (
-                  <Badge variant="secondary" className="ml-2">
-                    {objection.category}
-                  </Badge>
-                )}
               </Button>
             ))}
           </div>
@@ -95,14 +90,7 @@ export const SalesCoach = () => {
             <Card className="bg-primary/5">
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="text-lg">{selectedObjection.title}</CardTitle>
-                    {selectedObjection.category && (
-                      <Badge variant="outline" className="mt-1">
-                        {selectedObjection.category}
-                      </Badge>
-                    )}
-                  </div>
+                  <CardTitle className="text-lg">{selectedObjection.title}</CardTitle>
                   <Button
                     variant="ghost"
                     size="sm"
