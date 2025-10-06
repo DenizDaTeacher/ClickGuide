@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { CheckCircle, AlertCircle, Phone, User, Shield, FileText, Clock, GitBranch, Info, X } from "lucide-react";
+import { CheckCircle, AlertCircle, Phone, User, Shield, FileText, Clock, GitBranch, Info, X, ChevronDown } from "lucide-react";
 import { CallStep, ActionButton } from "@/hooks/useCallSteps";
 import { TopicSelector } from "./TopicSelector";
 import { SalesCoach } from "./SalesCoach";
@@ -406,34 +406,81 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
                 </div>
 
                 {/* Topic Selection for Topic Steps */}
-                {currentStep?.isTopicStep && !selectedTopic && (
+                {currentStep?.isTopicStep && (
                   <div className="space-y-3">
                     <h3 className="font-semibold flex items-center">
                       <Info className="w-4 h-4 mr-2" />
                       Wählen Sie ein Anliegen:
                     </h3>
-                    <div className="grid gap-2">
+                    <div className="space-y-2">
                       {topics
                         .filter(topic => topic.step_id === currentStep.id)
-                        .map((topic) => (
-                          <Button
-                            key={topic.id}
-                            onClick={() => handleTopicSelect(topic)}
-                            variant="outline"
-                            className="justify-start h-auto p-4 border-2"
-                            style={{ borderColor: topic.color || undefined }}
-                          >
-                            <div className="text-left flex items-center gap-3">
-                              {topic.icon && <span className="text-2xl">{topic.icon}</span>}
-                              <div>
-                                <div className="font-medium">{topic.name}</div>
-                                {topic.description && (
-                                  <div className="text-sm text-muted-foreground">{topic.description}</div>
-                                )}
-                              </div>
+                        .map((topic) => {
+                          const isSelected = selectedTopic?.id === topic.id;
+                          const subSteps = isSelected ? topicSubSteps : [];
+                          
+                          return (
+                            <div key={topic.id} className="border-2 rounded-lg overflow-hidden" style={{ borderColor: topic.color || undefined }}>
+                              <Button
+                                onClick={() => {
+                                  if (isSelected) {
+                                    setSelectedTopic(null);
+                                    setTopicSubSteps([]);
+                                    setCurrentSubStepIndex(null);
+                                  } else {
+                                    handleTopicSelect(topic);
+                                  }
+                                }}
+                                variant={isSelected ? "default" : "outline"}
+                                className="w-full justify-start h-auto p-4 rounded-none border-0"
+                              >
+                                <div className="text-left flex items-center gap-3 w-full">
+                                  {topic.icon && <span className="text-2xl">{topic.icon}</span>}
+                                  <div className="flex-1">
+                                    <div className="font-medium">{topic.name}</div>
+                                    {topic.description && (
+                                      <div className="text-sm text-muted-foreground">{topic.description}</div>
+                                    )}
+                                  </div>
+                                  <ChevronDown className={`w-4 h-4 transition-transform ${isSelected ? 'rotate-180' : ''}`} />
+                                </div>
+                              </Button>
+                              
+                              {isSelected && subSteps.length > 0 && (
+                                <div className="bg-muted/30 p-4 space-y-2">
+                                  <h4 className="text-sm font-semibold mb-2">Unterschritte:</h4>
+                                  {subSteps.map((subStep, index) => (
+                                    <div
+                                      key={subStep.id}
+                                      className={`p-3 rounded-lg border-l-4 ${
+                                        currentSubStepIndex === index
+                                          ? 'bg-primary/10 border-l-primary'
+                                          : 'bg-background border-l-muted'
+                                      }`}
+                                    >
+                                      <div className="flex items-center gap-2 mb-1">
+                                        <Badge variant="outline">{index + 1}</Badge>
+                                        <span className="font-medium text-sm">{subStep.title}</span>
+                                        {currentSubStepIndex === index && (
+                                          <Badge variant="default" className="ml-auto">Aktuell</Badge>
+                                        )}
+                                      </div>
+                                      {currentSubStepIndex === index && subStep.description && (
+                                        <p className="text-sm text-muted-foreground mt-2">{subStep.description}</p>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                              
+                              {isSelected && subSteps.length === 0 && (
+                                <div className="bg-muted/30 p-4 text-center text-sm text-muted-foreground">
+                                  Keine Unterschritte definiert
+                                </div>
+                              )}
                             </div>
-                          </Button>
-                        ))}
+                          );
+                        })}
                     </div>
                   </div>
                 )}
