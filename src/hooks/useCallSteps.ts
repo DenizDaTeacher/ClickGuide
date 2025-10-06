@@ -653,11 +653,75 @@ export function useCallSteps() {
 
   // Save a sub-step for a topic
   const saveStepWithTopic = async (step: CallStep, topicId: string): Promise<void> => {
-    const stepWithTopic = {
-      ...step,
-      parentTopicId: topicId
-    };
-    await saveStep(stepWithTopic);
+    try {
+      const stepWithTopic = {
+        ...step,
+        parentTopicId: topicId,
+        stepType: 'sub_step' as const
+      };
+      
+      // Check if step exists in database
+      const { data: existingStep } = await supabase
+        .from('call_steps')
+        .select('id')
+        .eq('step_id', step.id)
+        .eq('tenant_id', tenantId)
+        .maybeSingle();
+
+      const stepData = {
+        title: stepWithTopic.title,
+        description: stepWithTopic.description,
+        communication: stepWithTopic.communication,
+        required: stepWithTopic.required,
+        parent_step_id: stepWithTopic.parentStepId,
+        step_type: 'sub_step',
+        next_step_conditions: stepWithTopic.nextStepConditions || [],
+        action_buttons: JSON.parse(JSON.stringify(stepWithTopic.actionButtons || [])) as Json,
+        position_x: 0,
+        position_y: 0,
+        is_start_step: false,
+        is_end_step: false,
+        category: stepWithTopic.category,
+        workflow_name: currentWorkflow,
+        tenant_id: tenantId,
+        parent_topic_id: topicId,
+        status_background_color: stepWithTopic.statusBackgroundColor,
+        status_icon: stepWithTopic.statusIcon
+      };
+
+      if (!existingStep) {
+        // Insert new sub-step
+        const { error } = await supabase
+          .from('call_steps')
+          .insert({
+            step_id: step.id,
+            sort_order: 0,
+            ...stepData
+          });
+
+        if (error) throw error;
+        toast({ title: 'Unterschritt erstellt' });
+      } else {
+        // Update existing sub-step
+        const { error } = await supabase
+          .from('call_steps')
+          .update(stepData)
+          .eq('step_id', step.id)
+          .eq('tenant_id', tenantId);
+
+        if (error) throw error;
+        toast({ title: 'Unterschritt aktualisiert' });
+      }
+      
+      await loadSteps();
+    } catch (error) {
+      console.error('Error saving topic sub-step:', error);
+      toast({
+        title: 'Fehler beim Speichern',
+        description: 'Der Unterschritt konnte nicht gespeichert werden.',
+        variant: 'destructive'
+      });
+    }
   };
 
   // Delete a topic sub-step
