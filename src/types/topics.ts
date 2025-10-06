@@ -16,6 +16,7 @@ export interface Objection {
   id: string;
   tenant_id: string;
   title: string;
+  description?: string;
   keywords: string[];
   category?: string;
   priority: number;

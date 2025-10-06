@@ -8,47 +8,51 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { useObjections } from '@/hooks/useObjections';
-import { Objection, Response } from '@/types/topics';
+import { Objection, Response, ObjectionWithResponses } from '@/types/topics';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 export const ObjectionManager = () => {
-  const { objections, loading, saveObjection, deleteObjection, saveResponse, deleteResponse } = useObjections();
+  const { objections, loading, saveObjection, deleteObjection, saveResponse } = useObjections();
   const [editingObjection, setEditingObjection] = useState<Partial<Objection> | null>(null);
-  const [editingResponse, setEditingResponse] = useState<Partial<Response> | null>(null);
+  const [editingAnswer, setEditingAnswer] = useState<string>('');
   const [isObjectionDialogOpen, setIsObjectionDialogOpen] = useState(false);
-  const [isResponseDialogOpen, setIsResponseDialogOpen] = useState(false);
   const [keywordInput, setKeywordInput] = useState('');
 
   const handleSaveObjection = async () => {
     if (!editingObjection) return;
-    await saveObjection(editingObjection);
+    
+    // Save objection first
+    const savedObjectionId = await saveObjection(editingObjection);
+    
+    // If there's an answer, save it as a response
+    if (editingAnswer.trim() && savedObjectionId) {
+      await saveResponse({
+        objection_id: savedObjectionId,
+        response_text: editingAnswer,
+        follow_up_steps: [],
+        sort_order: 0,
+      });
+    }
+    
     setEditingObjection(null);
+    setEditingAnswer('');
     setIsObjectionDialogOpen(false);
-  };
-
-  const handleSaveResponse = async () => {
-    if (!editingResponse) return;
-    await saveResponse(editingResponse);
-    setEditingResponse(null);
-    setIsResponseDialogOpen(false);
   };
 
   const handleNewObjection = () => {
     setEditingObjection({
       title: '',
       keywords: [],
+      description: '',
     });
+    setEditingAnswer('');
     setIsObjectionDialogOpen(true);
   };
 
-  const handleNewResponse = (objectionId: string) => {
-    setEditingResponse({
-      objection_id: objectionId,
-      response_text: '',
-      follow_up_steps: [],
-      sort_order: 0,
-    });
-    setIsResponseDialogOpen(true);
+  const handleEditObjection = (objection: ObjectionWithResponses) => {
+    setEditingObjection(objection);
+    setEditingAnswer(objection.responses[0]?.response_text || '');
+    setIsObjectionDialogOpen(true);
   };
 
   const addKeyword = () => {
@@ -102,6 +106,18 @@ export const ObjectionManager = () => {
                 />
               </div>
               <div>
+                <Label htmlFor="description">Beschreibung</Label>
+                <Textarea
+                  id="description"
+                  value={editingObjection?.description || ''}
+                  onChange={(e) =>
+                    setEditingObjection({ ...editingObjection, description: e.target.value })
+                  }
+                  placeholder="Weitere Details zum Einwand..."
+                  rows={3}
+                />
+              </div>
+              <div>
                 <Label>Keywords (für Fuzzy-Suche)</Label>
                 <div className="flex gap-2 mb-2">
                   <Input
@@ -128,6 +144,16 @@ export const ObjectionManager = () => {
                   ))}
                 </div>
               </div>
+              <div>
+                <Label htmlFor="answer">Musterantwort</Label>
+                <Textarea
+                  id="answer"
+                  value={editingAnswer}
+                  onChange={(e) => setEditingAnswer(e.target.value)}
+                  placeholder="Empfohlene Antwort auf diesen Einwand..."
+                  rows={6}
+                />
+              </div>
               <Button onClick={handleSaveObjection} className="w-full">
                 Speichern
               </Button>
@@ -145,7 +171,9 @@ export const ObjectionManager = () => {
                   <div className="flex items-center justify-between w-full pr-4">
                     <div className="flex items-center gap-2">
                       <CardTitle>{objection.title}</CardTitle>
-                      <Badge variant="secondary">{objection.responses.length} Antworten</Badge>
+                      {objection.responses.length > 0 && (
+                        <Badge variant="secondary">Antwort vorhanden</Badge>
+                      )}
                     </div>
                     <div className="flex gap-2">
                       <Button
@@ -153,8 +181,7 @@ export const ObjectionManager = () => {
                         size="icon"
                         onClick={(e) => {
                           e.stopPropagation();
-                          setEditingObjection(objection);
-                          setIsObjectionDialogOpen(true);
+                          handleEditObjection(objection);
                         }}
                       >
                         <Edit className="h-4 w-4" />
@@ -175,6 +202,13 @@ export const ObjectionManager = () => {
               </CardHeader>
               <AccordionContent>
                 <CardContent className="space-y-4">
+                  {objection.description && (
+                    <div>
+                      <Label className="text-sm font-semibold">Beschreibung:</Label>
+                      <p className="text-sm text-muted-foreground mt-1">{objection.description}</p>
+                    </div>
+                  )}
+                  
                   <div>
                     <Label className="text-sm font-semibold">Keywords:</Label>
                     <div className="flex flex-wrap gap-2 mt-1">
@@ -187,78 +221,18 @@ export const ObjectionManager = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-sm font-semibold">Antworten:</Label>
-                      <Dialog open={isResponseDialogOpen} onOpenChange={setIsResponseDialogOpen}>
-                        <DialogTrigger asChild>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleNewResponse(objection.id)}
-                          >
-                            <Plus className="mr-2 h-4 w-4" />
-                            Antwort hinzufügen
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                          <DialogHeader>
-                            <DialogTitle>
-                              {editingResponse?.id ? 'Antwort bearbeiten' : 'Neue Antwort'}
-                            </DialogTitle>
-                          </DialogHeader>
-                          <div className="space-y-4">
-                            <div>
-                              <Label htmlFor="response_text">Antworttext</Label>
-                              <Textarea
-                                id="response_text"
-                                value={editingResponse?.response_text || ''}
-                                onChange={(e) =>
-                                  setEditingResponse({
-                                    ...editingResponse,
-                                    response_text: e.target.value,
-                                  })
-                                }
-                                placeholder="Empfohlene Antwort eingeben"
-                                rows={6}
-                              />
-                            </div>
-                            <Button onClick={handleSaveResponse} className="w-full">
-                              Speichern
-                            </Button>
-                          </div>
-                        </DialogContent>
-                      </Dialog>
-                    </div>
-                    {objection.responses.map((response) => (
-                      <Card key={response.id}>
+                    <Label className="text-sm font-semibold">Musterantwort:</Label>
+                    {objection.responses.length > 0 ? (
+                      <Card className="bg-success/5 border-success/20">
                         <CardContent className="pt-4">
-                          <div className="flex justify-between items-start gap-2">
-                            <p className="text-sm whitespace-pre-wrap flex-1">
-                              {response.response_text}
-                            </p>
-                            <div className="flex gap-2">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => {
-                                  setEditingResponse(response);
-                                  setIsResponseDialogOpen(true);
-                                }}
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => deleteResponse(response.id)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </div>
+                          <p className="text-sm whitespace-pre-wrap">
+                            {objection.responses[0].response_text}
+                          </p>
                         </CardContent>
                       </Card>
-                    ))}
+                    ) : (
+                      <p className="text-sm text-muted-foreground italic">Keine Antwort hinterlegt</p>
+                    )}
                   </div>
                 </CardContent>
               </AccordionContent>

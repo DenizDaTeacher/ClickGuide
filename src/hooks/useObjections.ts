@@ -55,13 +55,14 @@ export const useObjections = () => {
     }
   };
 
-  const saveObjection = async (objection: Partial<Objection>) => {
+  const saveObjection = async (objection: Partial<Objection>): Promise<string | null> => {
     try {
       if (objection.id) {
         const { error } = await supabase
           .from('objections')
           .update({
             title: objection.title,
+            description: objection.description,
             keywords: objection.keywords,
             updated_at: new Date().toISOString(),
           })
@@ -69,28 +70,34 @@ export const useObjections = () => {
 
         if (error) throw error;
         toast({ title: 'Einwand aktualisiert' });
+        return objection.id;
       } else {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('objections')
           .insert({
             tenant_id: tenantId,
             title: objection.title || 'Neuer Einwand',
+            description: objection.description,
             keywords: objection.keywords || [],
             category: null,
             priority: 0,
-          });
+          })
+          .select()
+          .single();
 
         if (error) throw error;
         toast({ title: 'Einwand erstellt' });
+        return data?.id || null;
       }
-      
-      await fetchObjections();
     } catch (error) {
       console.error('Error saving objection:', error);
       toast({
         title: 'Fehler beim Speichern',
         variant: 'destructive',
       });
+      return null;
+    } finally {
+      await fetchObjections();
     }
   };
 
