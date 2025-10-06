@@ -5,6 +5,9 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { CheckCircle, AlertCircle, Phone, User, Shield, FileText, Clock, GitBranch, Info, X } from "lucide-react";
 import { CallStep, ActionButton } from "@/hooks/useCallSteps";
+import { TopicSelector } from "./TopicSelector";
+import { SalesCoach } from "./SalesCoach";
+import { Topic } from "@/types/topics";
 
 interface AgentModeProps {
   steps: CallStep[];
@@ -19,11 +22,40 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
   const [authenticationFailed, setAuthenticationFailed] = useState(false);
   const [statusMessages, setStatusMessages] = useState<string[]>([]);
   const [currentSubStepIndex, setCurrentSubStepIndex] = useState<number | null>(null);
+  const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null);
+  const [filteredSteps, setFilteredSteps] = useState<CallStep[]>(steps);
+  const [showTopicSelector, setShowTopicSelector] = useState(false);
+  const [showSalesCoach, setShowSalesCoach] = useState(false);
 
   const completedSteps = stepHistory.length;
-  const totalSteps = steps.length;
-  const requiredSteps = steps.filter(step => step.required);
+  const totalSteps = filteredSteps.length;
+  const requiredSteps = filteredSteps.filter(step => step.required);
   const completedRequiredSteps = stepHistory.filter(step => step.required).length;
+
+  // Filter steps based on selected topic
+  useEffect(() => {
+    if (selectedTopic) {
+      const topicSteps = steps.filter(step => 
+        !step.topicId || step.topicId === selectedTopic.id
+      );
+      setFilteredSteps(topicSteps);
+    } else {
+      // Show only steps without topic_id when no topic is selected
+      const generalSteps = steps.filter(step => !step.topicId);
+      setFilteredSteps(generalSteps);
+    }
+  }, [selectedTopic, steps]);
+
+  const handleTopicSelect = (topic: Topic) => {
+    setSelectedTopic(topic);
+    setShowTopicSelector(false);
+    
+    // Find first step of selected topic
+    const topicSteps = steps.filter(step => step.topicId === topic.id);
+    if (topicSteps.length > 0) {
+      setCurrentStep(topicSteps[0]);
+    }
+  };
 
   // Get current display step (main step or sub-step)
   const getCurrentDisplayStep = () => {
@@ -38,9 +70,9 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
 
   // Find start step or use first step
   const getStartStep = () => {
-    console.log('🔍 Getting start step from steps:', steps);
-    console.log('🔍 Steps count:', steps.length);
-    const startStep = steps.find(step => step.isStartStep) || steps[0];
+    console.log('🔍 Getting start step from steps:', filteredSteps);
+    console.log('🔍 Steps count:', filteredSteps.length);
+    const startStep = filteredSteps.find(step => step.isStartStep) || filteredSteps[0];
     console.log('🔍 Selected start step:', startStep);
     return startStep;
   };
@@ -550,25 +582,36 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
       )}
 
       {!callActive && (
-        <Card className="shadow-elevated">
-          <CardContent className="p-12 text-center">
-            <Phone className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-            <h2 className="text-2xl font-semibold mb-2">Bereit für den nächsten Anruf</h2>
-            <p className="text-muted-foreground mb-6">
-              Klicken Sie auf "Gespräch starten" um den Workflow "{currentWorkflow}" zu durchlaufen
-            </p>
-            {steps.length === 0 ? (
-              <p className="text-sm text-muted-foreground mb-6">
-                Keine Schritte in "{currentWorkflow}" konfiguriert. Wechseln Sie zum Editor-Modus um Schritte zu erstellen.
+        <div className="space-y-6">
+          <Card className="shadow-elevated">
+            <CardContent className="p-12 text-center">
+              <Phone className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+              <h2 className="text-2xl font-semibold mb-2">Bereit für den nächsten Anruf</h2>
+              <p className="text-muted-foreground mb-6">
+                Klicken Sie auf "Gespräch starten" um den Workflow "{currentWorkflow}" zu durchlaufen
               </p>
-            ) : (
-              <Button onClick={startCall} size="lg" className="bg-gradient-primary">
-                <Phone className="w-5 h-5 mr-2" />
-                Gespräch starten
-              </Button>
-            )}
-          </CardContent>
-        </Card>
+              {steps.length === 0 ? (
+                <p className="text-sm text-muted-foreground mb-6">
+                  Keine Schritte in "{currentWorkflow}" konfiguriert. Wechseln Sie zum Editor-Modus um Schritte zu erstellen.
+                </p>
+              ) : (
+                <Button onClick={startCall} size="lg" className="bg-gradient-primary">
+                  <Phone className="w-5 h-5 mr-2" />
+                  Gespräch starten
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+          
+          <SalesCoach />
+          
+          {showTopicSelector && (
+            <TopicSelector 
+              onSelectTopic={handleTopicSelect} 
+              selectedTopicId={selectedTopic?.id} 
+            />
+          )}
+        </div>
       )}
 
       {callActive && !currentStep && (

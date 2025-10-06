@@ -6,7 +6,10 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { WorkflowStepEditor } from "./WorkflowStepEditor";
+import { TopicManager } from "./TopicManager";
+import { ObjectionManager } from "./ObjectionManager";
 import { CallStep } from "@/hooks/useCallSteps";
 import {
   DndContext,
@@ -389,123 +392,139 @@ export default function EditorMode({
   }
 
   return (
-    <div className="space-y-6">
-      {/* Workflow Management */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <div className="flex items-center space-x-2">
-            <span className="text-sm font-medium">Liste:</span>
-            <Select value={currentWorkflow} onValueChange={onWorkflowChange}>
-              <SelectTrigger className="w-[200px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {workflows.map((workflow) => (
-                  <SelectItem key={workflow} value={workflow}>
-                    {workflow}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+    <Tabs defaultValue="steps" className="w-full">
+      <TabsList className="grid w-full grid-cols-3">
+        <TabsTrigger value="steps">Schritte</TabsTrigger>
+        <TabsTrigger value="topics">Anliegen (Topics)</TabsTrigger>
+        <TabsTrigger value="objections">Einwände</TabsTrigger>
+      </TabsList>
+      
+      <TabsContent value="steps" className="space-y-6">
+        {/* Workflow Management */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2">
+              <span className="text-sm font-medium">Liste:</span>
+              <Select value={currentWorkflow} onValueChange={onWorkflowChange}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {workflows.map((workflow) => (
+                    <SelectItem key={workflow} value={workflow}>
+                      {workflow}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <Dialog open={showNewWorkflowDialog} onOpenChange={setShowNewWorkflowDialog}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <FolderPlus className="w-4 h-4 mr-2" />
+                  Neue Liste
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Neue Liste erstellen</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <Input
+                    placeholder="Name der neuen Liste..."
+                    value={newWorkflowName}
+                    onChange={(e) => setNewWorkflowName(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleCreateWorkflow()}
+                  />
+                  <div className="flex justify-end space-x-2">
+                    <Button variant="outline" onClick={() => setShowNewWorkflowDialog(false)}>
+                      Abbrechen
+                    </Button>
+                    <Button onClick={handleCreateWorkflow}>
+                      Erstellen
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            {currentWorkflow !== 'Gesprächsschritte' && (
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => onDeleteWorkflow(currentWorkflow)}
+                className="text-destructive hover:text-destructive"
+              >
+                <Trash className="w-4 h-4 mr-2" />
+                Liste löschen
+              </Button>
+            )}
           </div>
           
-          <Dialog open={showNewWorkflowDialog} onOpenChange={setShowNewWorkflowDialog}>
-            <DialogTrigger asChild>
-              <Button variant="outline" size="sm">
-                <FolderPlus className="w-4 h-4 mr-2" />
-                Neue Liste
+          <div className="flex items-center space-x-2">
+            <Button onClick={handleCreateNew} className="bg-gradient-primary">
+              <Plus className="w-4 h-4 mr-2" />
+              Neuer Schritt
+            </Button>
+            {onSaveAndExecute && (
+              <Button onClick={onSaveAndExecute} variant="default" size="lg" className="bg-gradient-primary shadow-elevated">
+                <CheckCircle className="w-4 h-4 mr-2" />
+                Änderungen speichern & Schritte ausführen
               </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Neue Liste erstellen</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <Input
-                  placeholder="Name der neuen Liste..."
-                  value={newWorkflowName}
-                  onChange={(e) => setNewWorkflowName(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleCreateWorkflow()}
-                />
-                <div className="flex justify-end space-x-2">
-                  <Button variant="outline" onClick={() => setShowNewWorkflowDialog(false)}>
-                    Abbrechen
-                  </Button>
-                  <Button onClick={handleCreateWorkflow}>
-                    Erstellen
-                  </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Drag & Drop List View */}
+        <div className="space-y-2">
+          {mainSteps.length === 0 ? (
+            <Card>
+              <CardContent className="p-12 text-center">
+                <p className="text-muted-foreground mb-4">
+                  Noch keine Schritte in "{currentWorkflow}" vorhanden
+                </p>
+                <Button onClick={handleCreateNew} variant="outline">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Ersten Schritt erstellen
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext
+                items={mainSteps.map(step => step.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                <div className="space-y-4">
+                  {mainSteps.map((step, index) => (
+                    <SortableStepCard
+                      key={step.id}
+                      step={step}
+                      index={index}
+                      onEdit={handleEdit}
+                      onDelete={onDeleteStep}
+                      onUpdateStep={handleStepUpdate}
+                    />
+                  ))}
                 </div>
-              </div>
-            </DialogContent>
-          </Dialog>
-
-          {currentWorkflow !== 'Gesprächsschritte' && (
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => onDeleteWorkflow(currentWorkflow)}
-              className="text-destructive hover:text-destructive"
-            >
-              <Trash className="w-4 h-4 mr-2" />
-              Liste löschen
-            </Button>
+              </SortableContext>
+            </DndContext>
           )}
         </div>
-        
-        <div className="flex items-center space-x-2">
-          <Button onClick={handleCreateNew} className="bg-gradient-primary">
-            <Plus className="w-4 h-4 mr-2" />
-            Neuer Schritt
-          </Button>
-          {onSaveAndExecute && (
-            <Button onClick={onSaveAndExecute} variant="default" size="lg" className="bg-gradient-primary shadow-elevated">
-              <CheckCircle className="w-4 h-4 mr-2" />
-              Änderungen speichern & Schritte ausführen
-            </Button>
-          )}
-        </div>
-      </div>
-
-      {/* Drag & Drop List View */}
-      <div className="space-y-2">
-        {mainSteps.length === 0 ? (
-          <Card>
-            <CardContent className="p-12 text-center">
-              <p className="text-muted-foreground mb-4">
-                Noch keine Schritte in "{currentWorkflow}" vorhanden
-              </p>
-              <Button onClick={handleCreateNew} variant="outline">
-                <Plus className="w-4 h-4 mr-2" />
-                Ersten Schritt erstellen
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={handleDragEnd}
-          >
-            <SortableContext
-              items={mainSteps.map(step => step.id)}
-              strategy={verticalListSortingStrategy}
-            >
-              <div className="space-y-4">
-                {mainSteps.map((step, index) => (
-                  <SortableStepCard
-                    key={step.id}
-                    step={step}
-                    index={index}
-                    onEdit={handleEdit}
-                    onDelete={onDeleteStep}
-                    onUpdateStep={handleStepUpdate}
-                  />
-                ))}
-              </div>
-            </SortableContext>
-          </DndContext>
-        )}
-      </div>
-    </div>
+      </TabsContent>
+      
+      <TabsContent value="topics">
+        <TopicManager />
+      </TabsContent>
+      
+      <TabsContent value="objections">
+        <ObjectionManager />
+      </TabsContent>
+    </Tabs>
   );
 }

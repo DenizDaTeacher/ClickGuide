@@ -85,6 +85,7 @@ export type Database = {
           step_type: string
           tenant_id: string
           title: string
+          topic_id: string | null
           updated_at: string
           workflow_name: string
         }
@@ -110,6 +111,7 @@ export type Database = {
           step_type?: string
           tenant_id?: string
           title: string
+          topic_id?: string | null
           updated_at?: string
           workflow_name?: string
         }
@@ -135,6 +137,7 @@ export type Database = {
           step_type?: string
           tenant_id?: string
           title?: string
+          topic_id?: string | null
           updated_at?: string
           workflow_name?: string
         }
@@ -145,6 +148,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "call_steps"
             referencedColumns: ["step_id"]
+          },
+          {
+            foreignKeyName: "call_steps_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "topics"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -374,6 +384,42 @@ export type Database = {
         }
         Relationships: []
       }
+      objections: {
+        Row: {
+          category: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          keywords: string[]
+          priority: number
+          tenant_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          keywords?: string[]
+          priority?: number
+          tenant_id?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          keywords?: string[]
+          priority?: number
+          tenant_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -455,6 +501,47 @@ export type Database = {
         }
         Relationships: []
       }
+      responses: {
+        Row: {
+          created_at: string
+          follow_up_steps: Json | null
+          id: string
+          objection_id: string | null
+          response_text: string
+          sort_order: number
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          follow_up_steps?: Json | null
+          id?: string
+          objection_id?: string | null
+          response_text: string
+          sort_order?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          follow_up_steps?: Json | null
+          id?: string
+          objection_id?: string | null
+          response_text?: string
+          sort_order?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "responses_objection_id_fkey"
+            columns: ["objection_id"]
+            isOneToOne: false
+            referencedRelation: "objections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenants: {
         Row: {
           created_at: string | null
@@ -479,6 +566,45 @@ export type Database = {
           is_active?: boolean | null
           name?: string
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      topics: {
+        Row: {
+          color: string | null
+          created_at: string
+          description: string | null
+          icon: string | null
+          id: string
+          is_active: boolean
+          name: string
+          sort_order: number
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          sort_order?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          sort_order?: number
+          tenant_id?: string
+          updated_at?: string
         }
         Relationships: []
       }

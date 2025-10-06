@@ -38,7 +38,7 @@ export interface CallStep {
   completed: boolean;
   required: boolean;
   parentStepId?: string;
-  stepType: 'normal' | 'condition' | 'sub_step' | 'decision';
+  stepType: 'normal' | 'condition' | 'sub_step' | 'decision' | 'router';
   conditionLabel?: string;
   nextStepConditions: Array<{
     condition: string;
@@ -56,6 +56,7 @@ export interface CallStep {
   actionButtons?: ActionButton[];
   statusBackgroundColor?: string;
   statusIcon?: string;
+  topicId?: string;
 }
 
 export type NextStepCondition = CallStep['nextStepConditions'][0];
