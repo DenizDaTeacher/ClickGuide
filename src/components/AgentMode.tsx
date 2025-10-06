@@ -11,16 +11,22 @@ import { Topic } from "@/types/topics";
 import { useTopics } from "@/hooks/useTopics";
 import { supabase } from "@/integrations/supabase/client";
 import { useTenant } from "@/hooks/useTenant";
-
 interface AgentModeProps {
   steps: CallStep[];
   onStepsUpdate: (steps: CallStep[]) => void;
   currentWorkflow: string;
 }
-
-export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: AgentModeProps) {
-  const { tenantId } = useTenant();
-  const { topics } = useTopics();
+export default function AgentMode({
+  steps,
+  onStepsUpdate,
+  currentWorkflow
+}: AgentModeProps) {
+  const {
+    tenantId
+  } = useTenant();
+  const {
+    topics
+  } = useTopics();
   const [callActive, setCallActive] = useState(false);
   const [currentStep, setCurrentStep] = useState<CallStep | null>(null);
   const [stepHistory, setStepHistory] = useState<CallStep[]>([]);
@@ -32,7 +38,6 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
   const [showTopicSelector, setShowTopicSelector] = useState(false);
   const [showSalesCoach, setShowSalesCoach] = useState(false);
   const [topicSubSteps, setTopicSubSteps] = useState<CallStep[]>([]);
-
   const completedSteps = stepHistory.length;
   const totalSteps = filteredSteps.length;
   const requiredSteps = filteredSteps.filter(step => step.required);
@@ -41,9 +46,7 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
   // Filter steps based on selected topic
   useEffect(() => {
     if (selectedTopic) {
-      const topicSteps = steps.filter(step => 
-        !step.topicId || step.topicId === selectedTopic.id
-      );
+      const topicSteps = steps.filter(step => !step.topicId || step.topicId === selectedTopic.id);
       setFilteredSteps(topicSteps);
     } else {
       // Show only steps without topic_id when no topic is selected
@@ -51,23 +54,20 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
       setFilteredSteps(generalSteps);
     }
   }, [selectedTopic, steps]);
-
   const handleTopicSelect = async (topic: Topic) => {
     setSelectedTopic(topic);
     setShowTopicSelector(false);
-    
+
     // Load sub-steps for this topic
     try {
-      const { data, error } = await supabase
-        .from('call_steps')
-        .select('*')
-        .eq('tenant_id', tenantId)
-        .eq('parent_topic_id', topic.id)
-        .eq('step_type', 'sub_step')
-        .order('sort_order', { ascending: true });
-
+      const {
+        data,
+        error
+      } = await supabase.from('call_steps').select('*').eq('tenant_id', tenantId).eq('parent_topic_id', topic.id).eq('step_type', 'sub_step').order('sort_order', {
+        ascending: true
+      });
       if (error) throw error;
-      
+
       // Convert database format to CallStep format
       const subSteps: CallStep[] = (data || []).map((step: any) => ({
         id: step.step_id,
@@ -93,7 +93,6 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
         subSteps: [],
         parentTopicId: step.parent_topic_id
       }));
-      
       setTopicSubSteps(subSteps);
       if (subSteps.length > 0) {
         setCurrentSubStepIndex(0);
@@ -106,19 +105,18 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
   // Get current display step (main step or sub-step)
   const getCurrentDisplayStep = () => {
     if (!currentStep) return null;
-    
+
     // If we're in a topic step and have selected a topic with sub-steps
     if (currentStep.isTopicStep && selectedTopic && topicSubSteps.length > 0 && currentSubStepIndex !== null) {
       return topicSubSteps[currentSubStepIndex];
     }
-    
+
     // Otherwise use sub-steps from current step
     if (currentSubStepIndex !== null && currentStep.subSteps && currentStep.subSteps[currentSubStepIndex]) {
       return currentStep.subSteps[currentSubStepIndex];
     }
     return currentStep;
   };
-
   const currentDisplayStep = getCurrentDisplayStep();
 
   // Find start step or use first step
@@ -129,16 +127,14 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
     console.log('🔍 Selected start step:', startStep);
     return startStep;
   };
-
   const handleStepComplete = (nextStepId?: string) => {
     if (!currentStep) {
       console.log('❌ No current step to complete');
       return;
     }
-    
     console.log('✅ Completing step:', currentStep.title, 'ID:', currentStep.id);
     console.log('🔍 Status messages before completion:', statusMessages);
-    
+
     // Handle topic sub-steps
     if (currentStep.isTopicStep && selectedTopic && topicSubSteps.length > 0) {
       if (currentSubStepIndex === null) {
@@ -160,7 +156,7 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
         // Continue to complete the main step below
       }
     }
-    
+
     // Handle regular sub-steps
     if (currentStep.subSteps && currentStep.subSteps.length > 0) {
       if (currentSubStepIndex === null) {
@@ -179,22 +175,22 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
         setCurrentSubStepIndex(null);
       }
     }
-    
-    const updatedSteps = steps.map(step => 
-      step.id === currentStep.id ? { ...step, completed: true } : step
-    );
+    const updatedSteps = steps.map(step => step.id === currentStep.id ? {
+      ...step,
+      completed: true
+    } : step);
     onStepsUpdate(updatedSteps);
-    
+
     // Add current step to history
     setStepHistory(prev => [...prev, currentStep]);
-    
+
     // Check if this is an end step
     if (currentStep.isEndStep) {
       console.log('🏁 Reached end step, stopping workflow');
       setCurrentStep(null);
       return;
     }
-    
+
     // Move to next step
     if (nextStepId) {
       console.log('🎯 Moving to specific next step:', nextStepId);
@@ -213,13 +209,11 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
       console.log('📍 Current step index (by ID):', currentIndex, 'of', steps.length, 'steps');
       const nextStep = currentIndex < steps.length - 1 ? steps[currentIndex + 1] : null;
       console.log('➡️ Next step in sequence:', nextStep);
-      
       if (nextStep) {
         console.log('🔍 Next step action buttons:', nextStep.actionButtons);
       }
-      
       setCurrentStep(nextStep);
-      
+
       // Clear status messages when moving to a new step
       if (nextStep) {
         console.log('🧹 Clearing status messages for new step');
@@ -227,20 +221,19 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
         setAuthenticationFailed(false); // Also clear authentication failure state
       }
     }
-    
     console.log('🔍 Status messages after step change:', statusMessages);
   };
-
   const handleBranchChoice = (nextStepId: string) => {
     if (!currentStep) return;
-    
+
     // Mark current step as completed and add to history
-    const updatedSteps = steps.map(step => 
-      step.id === currentStep.id ? { ...step, completed: true } : step
-    );
+    const updatedSteps = steps.map(step => step.id === currentStep.id ? {
+      ...step,
+      completed: true
+    } : step);
     onStepsUpdate(updatedSteps);
     setStepHistory(prev => [...prev, currentStep]);
-    
+
     // Move to selected next step
     const nextStep = steps.find(step => step.id === nextStepId);
     if (nextStep) {
@@ -251,23 +244,21 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
       setAuthenticationFailed(false);
     }
   };
-
   const handleActionButton = (button: ActionButton) => {
     console.log('🔴 Button clicked:', button);
     if (!currentStep) {
       console.log('❌ No current step');
       return;
     }
-    
     console.log('🔴 Button actionType:', button.actionType);
     console.log('🔴 Button statusMessage:', button.statusMessage);
-    
+
     // Only add status message if there is one defined AND it's not a complete action
     if (button.statusMessage && button.actionType !== 'complete') {
       console.log('📝 Adding status message from button:', button.statusMessage);
       setStatusMessages(prev => [...prev, button.statusMessage!]);
     }
-    
+
     // Handle different action types
     switch (button.actionType) {
       case 'complete':
@@ -285,11 +276,9 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
         break;
     }
   };
-
   const handleAuthenticationFailure = () => {
     setAuthenticationFailed(true);
   };
-
   const startCall = () => {
     console.log('🚀 Starting call with steps:', steps);
     console.log('🚀 Current workflow:', currentWorkflow);
@@ -301,26 +290,28 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
     setCurrentSubStepIndex(null);
     setSelectedTopic(null);
     setTopicSubSteps([]);
-    const resetSteps = steps.map(step => ({ ...step, completed: false }));
+    const resetSteps = steps.map(step => ({
+      ...step,
+      completed: false
+    }));
     onStepsUpdate(resetSteps);
     setAuthenticationFailed(false);
     setStatusMessages([]);
   };
-
   const endCall = () => {
     setCallActive(false);
     setCurrentStep(null);
     setStepHistory([]);
-    const resetSteps = steps.map(step => ({ ...step, completed: false }));
+    const resetSteps = steps.map(step => ({
+      ...step,
+      completed: false
+    }));
     onStepsUpdate(resetSteps);
     setAuthenticationFailed(false);
     setStatusMessages([]);
   };
-
   const canProceed = completedRequiredSteps === requiredSteps.length && !authenticationFailed;
-
-  return (
-    <div className="space-y-6">
+  return <div className="space-y-6">
       {/* Call Status */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
@@ -329,62 +320,43 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
             {callActive ? "Gespräch aktiv" : "Bereit"}
           </Badge>
         </div>
-        {!callActive ? (
-          <Button onClick={startCall} className="bg-gradient-primary">
+        {!callActive ? <Button onClick={startCall} className="bg-gradient-primary">
             Gespräch starten
-          </Button>
-        ) : (
-          <Button onClick={endCall} variant="destructive">
+          </Button> : <Button onClick={endCall} variant="destructive">
             Gespräch beenden
-          </Button>
-        )}
+          </Button>}
       </div>
 
-      {callActive && (
-        <div className="bg-gradient-card p-4 rounded-lg shadow-card">
+      {callActive && <div className="bg-gradient-card p-4 rounded-lg shadow-card">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm text-muted-foreground">Fortschritt</span>
             <span className="text-sm font-medium">{completedSteps} von {totalSteps} Schritten</span>
           </div>
-          <Progress value={totalSteps > 0 ? (completedSteps / totalSteps) * 100 : 0} className="h-2" />
-        </div>
-      )}
+          <Progress value={totalSteps > 0 ? completedSteps / totalSteps * 100 : 0} className="h-2" />
+        </div>}
 
-      {callActive && currentDisplayStep && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {callActive && currentDisplayStep && <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
             <Card className="shadow-elevated">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-xl">
-                    {currentSubStepIndex !== null && selectedTopic ? (
-                      <div className="space-y-1">
+                    {currentSubStepIndex !== null && selectedTopic ? <div className="space-y-1">
                         <div className="text-base text-muted-foreground">
                           {currentStep?.title} → {selectedTopic.name} → Unterschritt {currentSubStepIndex + 1}
                         </div>
                         <div>{currentDisplayStep.title}</div>
-                      </div>
-                    ) : currentSubStepIndex !== null ? (
-                      <div className="space-y-1">
+                      </div> : currentSubStepIndex !== null ? <div className="space-y-1">
                         <div className="text-base text-muted-foreground">
                           {currentStep?.title} → Unterschritt {currentSubStepIndex + 1}
                         </div>
                         <div>{currentDisplayStep.title}</div>
-                      </div>
-                    ) : (
-                      currentDisplayStep.title
-                    )}
+                      </div> : currentDisplayStep.title}
                   </CardTitle>
                   <div className="flex gap-2">
-                    {currentDisplayStep.required && (
-                      <Badge variant="destructive">Pflicht</Badge>
-                    )}
-                    {currentDisplayStep.stepType !== 'normal' && (
-                      <Badge variant="outline">{currentDisplayStep.stepType}</Badge>
-                    )}
-                    {currentDisplayStep.category && (
-                      <Badge variant="secondary">{currentDisplayStep.category}</Badge>
-                    )}
+                    {currentDisplayStep.required && <Badge variant="destructive">Pflicht</Badge>}
+                    {currentDisplayStep.stepType !== 'normal' && <Badge variant="outline">{currentDisplayStep.stepType}</Badge>}
+                    {currentDisplayStep.category && <Badge variant="secondary">{currentDisplayStep.category}</Badge>}
                   </div>
                 </div>
               </CardHeader>
@@ -406,178 +378,105 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
                 </div>
 
                 {/* Topic Selection for Topic Steps */}
-                {currentStep?.isTopicStep && (
-                  <div className="space-y-3">
+                {currentStep?.isTopicStep && <div className="space-y-3">
                     <h3 className="font-semibold flex items-center">
                       <Info className="w-4 h-4 mr-2" />
                       Wählen Sie ein Anliegen:
                     </h3>
                     <div className="space-y-2">
-                      {topics
-                        .filter(topic => topic.step_id === currentStep.id)
-                        .map((topic) => {
-                          const isSelected = selectedTopic?.id === topic.id;
-                          const subSteps = isSelected ? topicSubSteps : [];
-                          
-                          return (
-                            <div key={topic.id} className="border rounded-lg overflow-hidden border-border/50" style={{ borderColor: topic.color ? `${topic.color}40` : undefined }}>
-                              <Button
-                                onClick={() => {
-                                  if (isSelected) {
-                                    setSelectedTopic(null);
-                                    setTopicSubSteps([]);
-                                    setCurrentSubStepIndex(null);
-                                  } else {
-                                    handleTopicSelect(topic);
-                                  }
-                                }}
-                                variant={isSelected ? "secondary" : "ghost"}
-                                className="w-full justify-start h-auto p-4 rounded-none border-0 hover:bg-muted/50"
-                              >
+                      {topics.filter(topic => topic.step_id === currentStep.id).map(topic => {
+                  const isSelected = selectedTopic?.id === topic.id;
+                  const subSteps = isSelected ? topicSubSteps : [];
+                  return <div key={topic.id} className="border rounded-lg overflow-hidden border-border/50" style={{
+                    borderColor: topic.color ? `${topic.color}40` : undefined
+                  }}>
+                              <Button onClick={() => {
+                      if (isSelected) {
+                        setSelectedTopic(null);
+                        setTopicSubSteps([]);
+                        setCurrentSubStepIndex(null);
+                      } else {
+                        handleTopicSelect(topic);
+                      }
+                    }} variant={isSelected ? "secondary" : "ghost"} className="w-full justify-start h-auto p-4 rounded-none border-0 hover:bg-muted/50">
                                 <div className="text-left flex items-center gap-3 w-full">
                                   {topic.icon && <span className="text-2xl">{topic.icon}</span>}
                                   <div className="flex-1">
                                     <div className="font-medium">{topic.name}</div>
-                                    {topic.description && (
-                                      <div className="text-sm text-muted-foreground">{topic.description}</div>
-                                    )}
+                                    {topic.description && <div className="text-sm text-muted-foreground">{topic.description}</div>}
                                   </div>
                                   <ChevronDown className={`w-4 h-4 transition-transform ${isSelected ? 'rotate-180' : ''}`} />
                                 </div>
                               </Button>
                               
-                              {isSelected && subSteps.length > 0 && (
-                                <div className="bg-muted/20 p-4 space-y-2">
+                              {isSelected && subSteps.length > 0 && <div className="bg-muted/20 p-4 space-y-2">
                                   <h4 className="text-sm font-medium mb-2 text-muted-foreground">Unterschritte:</h4>
-                                  {subSteps.map((subStep, index) => (
-                                    <div
-                                      key={subStep.id}
-                                      className={`p-3 rounded-lg border-l-2 ${
-                                        currentSubStepIndex === index
-                                          ? 'bg-muted/30 border-l-primary/60'
-                                          : 'bg-background/50 border-l-border'
-                                      }`}
-                                    >
+                                  {subSteps.map((subStep, index) => <div key={subStep.id} className={`p-3 rounded-lg border-l-2 ${currentSubStepIndex === index ? 'bg-muted/30 border-l-primary/60' : 'bg-background/50 border-l-border'}`}>
                                       <div className="flex items-center gap-2 mb-1">
                                         <Badge variant="outline">{index + 1}</Badge>
                                         <span className="font-medium text-sm">{subStep.title}</span>
-                                        {currentSubStepIndex === index && (
-                                          <Badge variant="default" className="ml-auto">Aktuell</Badge>
-                                        )}
+                                        {currentSubStepIndex === index && <Badge variant="default" className="ml-auto">Aktuell</Badge>}
                                       </div>
-                                      {currentSubStepIndex === index && subStep.description && (
-                                        <p className="text-sm text-muted-foreground mt-2">{subStep.description}</p>
-                                      )}
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
+                                      {currentSubStepIndex === index && subStep.description && <p className="text-sm text-muted-foreground mt-2">{subStep.description}</p>}
+                                    </div>)}
+                                </div>}
                               
-                              {isSelected && subSteps.length === 0 && (
-                                <div className="bg-muted/10 p-4 text-center text-sm text-muted-foreground">
+                              {isSelected && subSteps.length === 0 && <div className="bg-muted/10 p-4 text-center text-sm text-muted-foreground">
                                   Keine Unterschritte definiert
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
+                                </div>}
+                            </div>;
+                })}
                     </div>
-                  </div>
-                )}
+                  </div>}
 
                 {/* ServicePlus Coach for ServicePlus Steps */}
-                {currentStep?.isServicePlusStep && (
-                  <div className="mt-4">
+                {currentStep?.isServicePlusStep && <div className="mt-4">
                     <SalesCoach />
-                  </div>
-                )}
+                  </div>}
 
                 {/* Branch Options */}
-                {!currentStep?.isTopicStep && currentStep?.nextStepConditions.length > 0 ? (
-                  <div className="space-y-3">
+                {!currentStep?.isTopicStep && currentStep?.nextStepConditions.length > 0 ? <div className="space-y-3">
                     <h3 className="font-semibold flex items-center">
                       <GitBranch className="w-4 h-4 mr-2" />
                       Wählen Sie den nächsten Schritt:
                     </h3>
                     <div className="grid gap-2">
-                      {currentStep.nextStepConditions.map((condition, index) => (
-                        <Button
-                          key={index}
-                          onClick={() => handleBranchChoice(condition.nextStepId)}
-                          variant="outline"
-                          className="justify-start h-auto p-4"
-                        >
+                      {currentStep.nextStepConditions.map((condition, index) => <Button key={index} onClick={() => handleBranchChoice(condition.nextStepId)} variant="outline" className="justify-start h-auto p-4">
                           <div className="text-left">
                             <div className="font-medium">{condition.label}</div>
-                            {condition.condition && (
-                              <div className="text-sm text-muted-foreground">{condition.condition}</div>
-                            )}
+                            {condition.condition && <div className="text-sm text-muted-foreground">{condition.condition}</div>}
                           </div>
-                        </Button>
-                      ))}
+                        </Button>)}
                     </div>
-                  </div>
-                ) : (
-                  <div className="flex flex-wrap gap-3">
+                  </div> : <div className="flex flex-wrap gap-3">
                     {/* Only show completion button if not a topic step OR if topic is selected */}
-                    {(!currentStep?.isTopicStep || selectedTopic) && (
-                      <Button 
-                        onClick={() => handleStepComplete()}
-                        className="bg-gradient-primary"
-                      >
+                    {(!currentStep?.isTopicStep || selectedTopic) && <Button onClick={() => handleStepComplete()} className="bg-gradient-primary">
                         <CheckCircle className="w-4 h-4 mr-2" />
                         Schritt abgeschlossen
-                      </Button>
-                    )}
+                      </Button>}
                     
                     {/* Custom action buttons - show from current display step */}
-                    {currentDisplayStep && currentDisplayStep.actionButtons && currentDisplayStep.actionButtons
-                      .filter(button => button.enabled !== false)
-                      .map((button) => {
-                        return (
-                          <Button
-                            key={button.id}
-                            variant={button.variant}
-                            onClick={() => handleActionButton(button)}
-                          >
+                    {currentDisplayStep && currentDisplayStep.actionButtons && currentDisplayStep.actionButtons.filter(button => button.enabled !== false).map(button => {
+                return <Button key={button.id} variant={button.variant} onClick={() => handleActionButton(button)}>
                             {button.icon && <span className="mr-2">{button.icon}</span>}
                             {button.label}
-                          </Button>
-                        );
-                      })}
+                          </Button>;
+              })}
                     
                     {/* Custom action buttons from main step (if we're in a sub-step) */}
-                    {currentSubStepIndex !== null && currentStep && currentStep.actionButtons && currentStep.actionButtons
-                      .filter(button => button.enabled !== false)
-                      .filter(button => !currentDisplayStep?.actionButtons?.some(subButton => subButton.id === button.id))
-                      .map((button) => {
-                        return (
-                          <Button
-                            key={button.id}
-                            variant={button.variant}
-                            onClick={() => handleActionButton(button)}
-                          >
-                            {button.icon && <span className="mr-2">{button.icon}</span>}
-                            {button.label}
-                          </Button>
-                        );
-                      })}
+                    {currentSubStepIndex !== null && currentStep && currentStep.actionButtons && currentStep.actionButtons.filter(button => button.enabled !== false).filter(button => !currentDisplayStep?.actionButtons?.some(subButton => subButton.id === button.id)).map(button => {
+                return;
+              })}
                     
                     {/* Legacy decision button for backward compatibility */}
-                    {currentStep.stepType === 'decision' && (!currentStep.actionButtons || currentStep.actionButtons.length === 0) && (
-                      <Button 
-                        variant="destructive"
-                        onClick={() => {
-                          handleAuthenticationFailure();
-                          setStatusMessages(prev => [...prev, "Problem bei der Authentifizierung aufgetreten"]);
-                        }}
-                      >
+                    {currentStep.stepType === 'decision' && (!currentStep.actionButtons || currentStep.actionButtons.length === 0) && <Button variant="destructive" onClick={() => {
+                handleAuthenticationFailure();
+                setStatusMessages(prev => [...prev, "Problem bei der Authentifizierung aufgetreten"]);
+              }}>
                         <AlertCircle className="w-4 h-4 mr-2" />
                         Problem aufgetreten
-                      </Button>
-                    )}
-                  </div>
-                )}
+                      </Button>}
+                  </div>}
               </CardContent>
             </Card>
           </div>
@@ -600,73 +499,50 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
                   </Badge>
                 </div>
                 
-                {authenticationFailed && (
-                  <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
+                {authenticationFailed && <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
                     <p className="text-sm text-destructive font-medium">
                       ⚠️ Authentifizierung fehlgeschlagen
                     </p>
                     <p className="text-xs text-destructive/80 mt-1">
                       Gespräch muss beendet werden
                     </p>
-                  </div>
-                )}
+                  </div>}
                 
                 {/* Custom status messages from action buttons */}
                 {statusMessages.map((message, index) => {
-                  // Find the button that created this status message to get styling
-                  const buttons = currentStep?.actionButtons || [];
-                  const messageButton = buttons.find(button => button.statusMessage === message);
-                  
-                  // Create transparent background based on the button's background color
-                  let transparentBg = 'bg-primary/10 border-primary/20';
-                  if (messageButton?.statusBackgroundColor && messageButton.statusBackgroundColor !== 'default') {
-                    const colorClass = messageButton.statusBackgroundColor;
-                    if (colorClass.includes('blue')) transparentBg = 'bg-blue-500/10 border-blue-500/20';
-                    else if (colorClass.includes('green')) transparentBg = 'bg-green-500/10 border-green-500/20';
-                    else if (colorClass.includes('yellow')) transparentBg = 'bg-yellow-500/10 border-yellow-500/20';
-                    else if (colorClass.includes('red')) transparentBg = 'bg-red-500/10 border-red-500/20';
-                    else if (colorClass.includes('purple')) transparentBg = 'bg-purple-500/10 border-purple-500/20';
-                    else if (colorClass.includes('pink')) transparentBg = 'bg-pink-500/10 border-pink-500/20';
-                    else if (colorClass.includes('gray')) transparentBg = 'bg-gray-500/10 border-gray-500/20';
-                  }
-                  
-                  return (
-                    <div 
-                      key={index} 
-                      className={`p-3 rounded-lg border ${transparentBg}`}
-                    >
+              // Find the button that created this status message to get styling
+              const buttons = currentStep?.actionButtons || [];
+              const messageButton = buttons.find(button => button.statusMessage === message);
+
+              // Create transparent background based on the button's background color
+              let transparentBg = 'bg-primary/10 border-primary/20';
+              if (messageButton?.statusBackgroundColor && messageButton.statusBackgroundColor !== 'default') {
+                const colorClass = messageButton.statusBackgroundColor;
+                if (colorClass.includes('blue')) transparentBg = 'bg-blue-500/10 border-blue-500/20';else if (colorClass.includes('green')) transparentBg = 'bg-green-500/10 border-green-500/20';else if (colorClass.includes('yellow')) transparentBg = 'bg-yellow-500/10 border-yellow-500/20';else if (colorClass.includes('red')) transparentBg = 'bg-red-500/10 border-red-500/20';else if (colorClass.includes('purple')) transparentBg = 'bg-purple-500/10 border-purple-500/20';else if (colorClass.includes('pink')) transparentBg = 'bg-pink-500/10 border-pink-500/20';else if (colorClass.includes('gray')) transparentBg = 'bg-gray-500/10 border-gray-500/20';
+              }
+              return <div key={index} className={`p-3 rounded-lg border ${transparentBg}`}>
                       <div className="flex items-start justify-between">
                         <div className="flex items-center gap-2">
-                          {messageButton?.statusIcon && (
-                            <span className="text-base">{messageButton.statusIcon}</span>
-                          )}
+                          {messageButton?.statusIcon && <span className="text-base">{messageButton.statusIcon}</span>}
                           <p className="text-sm font-medium pr-2">
                             {message}
                           </p>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setStatusMessages(prev => prev.filter((_, i) => i !== index))}
-                          className="h-6 w-6 p-0 opacity-60 hover:opacity-100"
-                        >
+                        <Button variant="ghost" size="sm" onClick={() => setStatusMessages(prev => prev.filter((_, i) => i !== index))} className="h-6 w-6 p-0 opacity-60 hover:opacity-100">
                           <X className="w-3 h-3" />
                         </Button>
                       </div>
-                    </div>
-                  );
-                })}
+                    </div>;
+            })}
                 
-                {canProceed && completedRequiredSteps === requiredSteps.length && (
-                  <div className="p-3 bg-success/10 border border-success/20 rounded-lg">
+                {canProceed && completedRequiredSteps === requiredSteps.length && <div className="p-3 bg-success/10 border border-success/20 rounded-lg">
                     <p className="text-sm text-success font-medium">
                       ✅ Alle Pflichtschritte abgeschlossen
                     </p>
                     <p className="text-xs text-success/80 mt-1">
                       Gespräch kann fortgesetzt werden
                     </p>
-                  </div>
-                )}
+                  </div>}
               </CardContent>
             </Card>
 
@@ -680,81 +556,39 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {steps.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">Keine Schritte konfiguriert</p>
-                  ) : (
-                    steps.map((step, index) => {
-                      const isCompleted = stepHistory.some(completedStep => completedStep.id === step.id);
-                      const isCurrent = currentStep && currentStep.id === step.id;
-                      const isPending = !isCompleted && !isCurrent;
-                      
-                      return (
-                        <div 
-                          key={step.id}
-                          className={`flex items-center space-x-3 p-2 rounded-lg border ${
-                            isCompleted 
-                              ? 'bg-success/5 border-success/20' 
-                              : isCurrent 
-                                ? 'bg-primary/10 border-primary/20' 
-                                : 'bg-muted/30 border-muted/40'
-                          }`}
-                        >
-                          <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                            isCompleted 
-                              ? 'bg-success text-success-foreground' 
-                              : isCurrent 
-                                ? 'bg-primary text-primary-foreground' 
-                                : 'bg-muted text-muted-foreground'
-                          }`}>
-                            {isCompleted ? (
-                              <CheckCircle className="w-4 h-4" />
-                            ) : isCurrent ? (
-                              <span>▶</span>
-                            ) : (
-                              <span>{index + 1}</span>
-                            )}
+                  {steps.length === 0 ? <p className="text-sm text-muted-foreground">Keine Schritte konfiguriert</p> : steps.map((step, index) => {
+                const isCompleted = stepHistory.some(completedStep => completedStep.id === step.id);
+                const isCurrent = currentStep && currentStep.id === step.id;
+                const isPending = !isCompleted && !isCurrent;
+                return <div key={step.id} className={`flex items-center space-x-3 p-2 rounded-lg border ${isCompleted ? 'bg-success/5 border-success/20' : isCurrent ? 'bg-primary/10 border-primary/20' : 'bg-muted/30 border-muted/40'}`}>
+                          <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${isCompleted ? 'bg-success text-success-foreground' : isCurrent ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+                            {isCompleted ? <CheckCircle className="w-4 h-4" /> : isCurrent ? <span>▶</span> : <span>{index + 1}</span>}
                           </div>
                           <div className="flex-1">
-                            <p className={`text-sm font-medium ${
-                              isCompleted 
-                                ? 'text-success' 
-                                : isCurrent 
-                                  ? 'text-primary' 
-                                  : 'text-muted-foreground'
-                            }`}>
+                            <p className={`text-sm font-medium ${isCompleted ? 'text-success' : isCurrent ? 'text-primary' : 'text-muted-foreground'}`}>
                               {step.title}
                             </p>
                             <div className="flex items-center space-x-2 mt-1">
-                              {step.required && (
-                                <Badge variant="outline" className="text-xs">
+                              {step.required && <Badge variant="outline" className="text-xs">
                                   Pflicht
-                                </Badge>
-                              )}
-                              {isCompleted && (
-                                <Badge variant="outline" className="text-xs bg-success/10 text-success border-success/20">
+                                </Badge>}
+                              {isCompleted && <Badge variant="outline" className="text-xs bg-success/10 text-success border-success/20">
                                   Abgeschlossen
-                                </Badge>
-                              )}
-                              {isCurrent && (
-                                <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/20">
+                                </Badge>}
+                              {isCurrent && <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/20">
                                   Aktuell
-                                </Badge>
-                              )}
+                                </Badge>}
                             </div>
                           </div>
-                        </div>
-                      );
-                    })
-                  )}
+                        </div>;
+              })}
                 </div>
               </CardContent>
             </Card>
           </div>
-        </div>
-      )}
+        </div>}
 
-      {!callActive && (
-        <div className="space-y-6">
+      {!callActive && <div className="space-y-6">
           <Card className="shadow-elevated">
             <CardContent className="p-12 text-center">
               <Phone className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
@@ -762,32 +596,21 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
               <p className="text-muted-foreground mb-6">
                 Klicken Sie auf "Gespräch starten" um den Workflow "{currentWorkflow}" zu durchlaufen
               </p>
-              {steps.length === 0 ? (
-                <p className="text-sm text-muted-foreground mb-6">
+              {steps.length === 0 ? <p className="text-sm text-muted-foreground mb-6">
                   Keine Schritte in "{currentWorkflow}" konfiguriert. Wechseln Sie zum Editor-Modus um Schritte zu erstellen.
-                </p>
-              ) : (
-                <Button onClick={startCall} size="lg" className="bg-gradient-primary">
+                </p> : <Button onClick={startCall} size="lg" className="bg-gradient-primary">
                   <Phone className="w-5 h-5 mr-2" />
                   Gespräch starten
-                </Button>
-              )}
+                </Button>}
             </CardContent>
           </Card>
           
           <SalesCoach />
           
-          {showTopicSelector && (
-            <TopicSelector 
-              onSelectTopic={handleTopicSelect} 
-              selectedTopicId={selectedTopic?.id} 
-            />
-          )}
-        </div>
-      )}
+          {showTopicSelector && <TopicSelector onSelectTopic={handleTopicSelect} selectedTopicId={selectedTopic?.id} />}
+        </div>}
 
-      {callActive && !currentStep && (
-        <Card className="shadow-elevated">
+      {callActive && !currentStep && <Card className="shadow-elevated">
           <CardContent className="p-12 text-center">
             <CheckCircle className="w-16 h-16 text-success mx-auto mb-4" />
             <h2 className="text-2xl font-semibold mb-2">Workflow abgeschlossen</h2>
@@ -798,8 +621,6 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
               Gespräch beenden
             </Button>
           </CardContent>
-        </Card>
-      )}
-    </div>
-  );
+        </Card>}
+    </div>;
 }
