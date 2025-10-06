@@ -420,7 +420,7 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
                           const subSteps = isSelected ? topicSubSteps : [];
                           
                           return (
-                            <div key={topic.id} className="border-2 rounded-lg overflow-hidden" style={{ borderColor: topic.color || undefined }}>
+                            <div key={topic.id} className="border rounded-lg overflow-hidden border-border/50" style={{ borderColor: topic.color ? `${topic.color}40` : undefined }}>
                               <Button
                                 onClick={() => {
                                   if (isSelected) {
@@ -431,8 +431,8 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
                                     handleTopicSelect(topic);
                                   }
                                 }}
-                                variant={isSelected ? "default" : "outline"}
-                                className="w-full justify-start h-auto p-4 rounded-none border-0"
+                                variant={isSelected ? "secondary" : "ghost"}
+                                className="w-full justify-start h-auto p-4 rounded-none border-0 hover:bg-muted/50"
                               >
                                 <div className="text-left flex items-center gap-3 w-full">
                                   {topic.icon && <span className="text-2xl">{topic.icon}</span>}
@@ -447,15 +447,15 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
                               </Button>
                               
                               {isSelected && subSteps.length > 0 && (
-                                <div className="bg-muted/30 p-4 space-y-2">
-                                  <h4 className="text-sm font-semibold mb-2">Unterschritte:</h4>
+                                <div className="bg-muted/20 p-4 space-y-2">
+                                  <h4 className="text-sm font-medium mb-2 text-muted-foreground">Unterschritte:</h4>
                                   {subSteps.map((subStep, index) => (
                                     <div
                                       key={subStep.id}
-                                      className={`p-3 rounded-lg border-l-4 ${
+                                      className={`p-3 rounded-lg border-l-2 ${
                                         currentSubStepIndex === index
-                                          ? 'bg-primary/10 border-l-primary'
-                                          : 'bg-background border-l-muted'
+                                          ? 'bg-muted/30 border-l-primary/60'
+                                          : 'bg-background/50 border-l-border'
                                       }`}
                                     >
                                       <div className="flex items-center gap-2 mb-1">
@@ -474,7 +474,7 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
                               )}
                               
                               {isSelected && subSteps.length === 0 && (
-                                <div className="bg-muted/30 p-4 text-center text-sm text-muted-foreground">
+                                <div className="bg-muted/10 p-4 text-center text-sm text-muted-foreground">
                                   Keine Unterschritte definiert
                                 </div>
                               )}
