@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { WorkflowStepEditor } from "./WorkflowStepEditor";
-import { TopicManager } from "./TopicManager";
 import { ObjectionManager } from "./ObjectionManager";
 import { CallStep } from "@/hooks/useCallSteps";
 import {
@@ -402,9 +401,8 @@ export default function EditorMode({
 
   return (
     <Tabs defaultValue="steps" className="w-full">
-      <TabsList className="grid w-full grid-cols-3">
+      <TabsList className="grid w-full grid-cols-2">
         <TabsTrigger value="steps">Schritte</TabsTrigger>
-        <TabsTrigger value="topics">Anliegen (Topics)</TabsTrigger>
         <TabsTrigger value="objections">Einwände</TabsTrigger>
       </TabsList>
       
@@ -525,10 +523,6 @@ export default function EditorMode({
             </DndContext>
           )}
         </div>
-      </TabsContent>
-      
-      <TabsContent value="topics">
-        <TopicManager />
       </TabsContent>
       
       <TabsContent value="objections">
