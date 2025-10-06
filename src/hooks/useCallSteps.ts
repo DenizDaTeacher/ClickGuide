@@ -59,6 +59,7 @@ export interface CallStep {
   topicId?: string;
   isTopicStep?: boolean; // Marks if this step is a topic selection step
   parentTopicId?: string; // For sub-steps belonging to a topic
+  isServicePlusStep?: boolean; // Marks if this step should show ServicePlus Coach
 }
 
 export type NextStepCondition = CallStep['nextStepConditions'][0];
@@ -238,6 +239,7 @@ export function useCallSteps() {
           isStartStep: step.is_start_step || false,
           isEndStep: step.is_end_step || false,
           isTopicStep: step.is_topic_step || false,
+          isServicePlusStep: step.is_service_plus_step || false,
           category: step.category || undefined,
           sortOrder: step.sort_order || 0,
           workflowName: step.workflow_name,
@@ -450,6 +452,7 @@ export function useCallSteps() {
         status_background_color: processedStep.statusBackgroundColor,
         status_icon: processedStep.statusIcon,
         is_topic_step: processedStep.isTopicStep || false,
+        is_service_plus_step: processedStep.isServicePlusStep || false,
         parent_topic_id: processedStep.parentTopicId
       };
 
