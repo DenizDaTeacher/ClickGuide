@@ -628,7 +628,7 @@ export type Database = {
             columns: ["step_id"]
             isOneToOne: false
             referencedRelation: "call_steps"
-            referencedColumns: ["id"]
+            referencedColumns: ["step_id"]
           },
         ]
       }
