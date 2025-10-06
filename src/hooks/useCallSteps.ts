@@ -237,13 +237,16 @@ export function useCallSteps() {
           positionY: step.position_y || 0,
           isStartStep: step.is_start_step || false,
           isEndStep: step.is_end_step || false,
+          isTopicStep: step.is_topic_step || false,
           category: step.category || undefined,
           sortOrder: step.sort_order || 0,
           workflowName: step.workflow_name,
           actionButtons: ((step as any).action_buttons as ActionButton[]) || [],
           subSteps: [], // Will be populated separately if needed
           statusBackgroundColor: step.status_background_color || undefined,
-          statusIcon: step.status_icon || undefined
+          statusIcon: step.status_icon || undefined,
+          parentTopicId: step.parent_topic_id || undefined,
+          topicId: step.topic_id || undefined
         }));
         
         // Organize sub-steps under their parent steps
