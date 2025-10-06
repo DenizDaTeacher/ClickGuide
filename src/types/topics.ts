@@ -1,6 +1,7 @@
 export interface Topic {
   id: string;
   tenant_id: string;
+  step_id?: string; // Reference to the parent step
   name: string;
   description?: string;
   icon?: string;

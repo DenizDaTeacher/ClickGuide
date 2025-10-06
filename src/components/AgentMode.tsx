@@ -83,6 +83,12 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
       return;
     }
     
+    // Check if this is a topic step - show topic selector
+    if (currentStep.isTopicStep && !selectedTopic) {
+      setShowTopicSelector(true);
+      return;
+    }
+    
     console.log('✅ Completing step:', currentStep.title, 'ID:', currentStep.id);
     console.log('🔍 Status messages before completion:', statusMessages);
     
@@ -275,7 +281,18 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
 
       {callActive && currentDisplayStep && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Current Step */}
+          {/* Topic Selector - show if current step is topic step and no topic selected */}
+          {currentStep?.isTopicStep && showTopicSelector && (
+            <div className="lg:col-span-2">
+              <TopicSelector
+                onSelectTopic={handleTopicSelect}
+                selectedTopicId={selectedTopic?.id}
+              />
+            </div>
+          )}
+
+          {/* Current Step - show only if not showing topic selector */}
+          {(!currentStep?.isTopicStep || !showTopicSelector) && (
           <div className="lg:col-span-2">
             <Card className="shadow-elevated">
               <CardHeader>
@@ -409,6 +426,7 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
               </CardContent>
             </Card>
           </div>
+          )}
 
           {/* Progress Sidebar */}
           <div className="space-y-6">

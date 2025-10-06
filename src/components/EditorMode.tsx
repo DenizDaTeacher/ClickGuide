@@ -47,6 +47,9 @@ interface EditorModeProps {
   buttonTemplates: any[];
   onSaveButtonTemplate: (template: any) => Promise<any>;
   onDeleteButtonTemplate: (templateId: string) => Promise<void>;
+  saveStepWithTopic: (step: CallStep, topicId: string) => Promise<void>;
+  deleteTopicSubStep: (subStepId: string, topicId: string) => Promise<void>;
+  getSubStepsForTopic: (topicId: string) => CallStep[];
 }
 
 interface SortableStepCardProps {
@@ -285,7 +288,10 @@ export default function EditorMode({
   onSaveAndExecute,
   buttonTemplates,
   onSaveButtonTemplate,
-  onDeleteButtonTemplate
+  onDeleteButtonTemplate,
+  saveStepWithTopic,
+  deleteTopicSubStep,
+  getSubStepsForTopic
 }: EditorModeProps) {
   const [editingStep, setEditingStep] = useState<CallStep | null>(null);
   const [isCreatingNew, setIsCreatingNew] = useState(false);
@@ -387,6 +393,9 @@ export default function EditorMode({
             buttonTemplates={buttonTemplates}
             onSaveButtonTemplate={onSaveButtonTemplate}
             onDeleteButtonTemplate={onDeleteButtonTemplate}
+            onSaveStepWithTopic={saveStepWithTopic}
+            onDeleteTopicSubStep={deleteTopicSubStep}
+            getSubStepsForTopic={getSubStepsForTopic}
         />
     );
   }

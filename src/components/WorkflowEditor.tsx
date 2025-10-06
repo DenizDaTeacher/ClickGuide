@@ -14,6 +14,9 @@ interface WorkflowEditorProps {
   buttonTemplates: any[];
   onSaveButtonTemplate: (template: any) => Promise<any>;
   onDeleteButtonTemplate: (templateId: string) => Promise<void>;
+  onSaveStepWithTopic: (step: CallStep, topicId: string) => Promise<void>;
+  onDeleteTopicSubStep: (subStepId: string, topicId: string) => Promise<void>;
+  getSubStepsForTopic: (topicId: string) => CallStep[];
 }
 
 export function WorkflowEditor({ 
@@ -22,7 +25,10 @@ export function WorkflowEditor({
   onDeleteStep,
   buttonTemplates,
   onSaveButtonTemplate,
-  onDeleteButtonTemplate
+  onDeleteButtonTemplate,
+  onSaveStepWithTopic,
+  onDeleteTopicSubStep,
+  getSubStepsForTopic
 }: WorkflowEditorProps) {
   const [selectedStep, setSelectedStep] = useState<CallStep | null>(null);
   const [showStepEditor, setShowStepEditor] = useState(false);
@@ -201,6 +207,9 @@ export function WorkflowEditor({
               buttonTemplates={buttonTemplates}
               onSaveButtonTemplate={onSaveButtonTemplate}
               onDeleteButtonTemplate={onDeleteButtonTemplate}
+              onSaveStepWithTopic={onSaveStepWithTopic}
+              onDeleteTopicSubStep={onDeleteTopicSubStep}
+              getSubStepsForTopic={getSubStepsForTopic}
             />
           )}
         </DialogContent>

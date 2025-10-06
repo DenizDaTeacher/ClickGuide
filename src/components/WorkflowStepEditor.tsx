@@ -12,6 +12,7 @@ import { Separator } from "@/components/ui/separator";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CallStep, NextStepCondition, ActionButton, ButtonTemplate } from "@/hooks/useCallSteps";
+import { StepTopicManager } from "@/components/StepTopicManager";
 import { 
   Plus, Trash2, Settings, MousePointer, Save, ChevronDown, ChevronRight, 
   Palette, Star, Copy, Edit, Check, X, AlertTriangle, Info, Phone, 
@@ -28,6 +29,9 @@ interface WorkflowStepEditorProps {
   buttonTemplates: ButtonTemplate[];
   onSaveButtonTemplate: (template: Omit<ButtonTemplate, 'id'>) => Promise<ButtonTemplate>;
   onDeleteButtonTemplate: (templateId: string) => Promise<void>;
+  onSaveStepWithTopic: (step: CallStep, topicId: string) => Promise<void>;
+  onDeleteTopicSubStep: (subStepId: string, topicId: string) => Promise<void>;
+  getSubStepsForTopic: (topicId: string) => CallStep[];
 }
 
 export function WorkflowStepEditor({ 
@@ -37,7 +41,10 @@ export function WorkflowStepEditor({
   onCancel,
   buttonTemplates,
   onSaveButtonTemplate,
-  onDeleteButtonTemplate
+  onDeleteButtonTemplate,
+  onSaveStepWithTopic,
+  onDeleteTopicSubStep,
+  getSubStepsForTopic
 }: WorkflowStepEditorProps) {
   const { toast } = useToast();
 
@@ -481,6 +488,37 @@ export function WorkflowStepEditor({
             />
             <Label htmlFor="required">Pflichtschritt</Label>
           </div>
+
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="isTopicStep"
+              checked={formData.isTopicStep || false}
+              onCheckedChange={(checked) => handleInputChange('isTopicStep', checked)}
+            />
+            <Label htmlFor="isTopicStep">Anliegen-Schritt (mit Themenauswahl)</Label>
+          </div>
+
+          {/* Topic Manager - only show if this is a topic step */}
+          {formData.isTopicStep && formData.id && (
+            <Card className="border-primary/30">
+              <CardContent className="p-4">
+                <StepTopicManager
+                  stepId={formData.id}
+                  onSaveSubStep={onSaveStepWithTopic}
+                  onDeleteSubStep={onDeleteTopicSubStep}
+                  getSubStepsForTopic={getSubStepsForTopic}
+                />
+              </CardContent>
+            </Card>
+          )}
+
+          {formData.isTopicStep && !formData.id && (
+            <Card className="border-muted">
+              <CardContent className="p-4 text-center text-sm text-muted-foreground">
+                Speichern Sie den Schritt zuerst, um Anliegen zu konfigurieren.
+              </CardContent>
+            </Card>
+          )}
 
           {/* Sub-Steps Section */}
           <Collapsible open={isSubStepsOpen} onOpenChange={setIsSubStepsOpen}>

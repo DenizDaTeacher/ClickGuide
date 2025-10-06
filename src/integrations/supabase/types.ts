@@ -73,8 +73,10 @@ export type Database = {
           id: string
           is_end_step: boolean | null
           is_start_step: boolean | null
+          is_topic_step: boolean | null
           next_step_conditions: Json | null
           parent_step_id: string | null
+          parent_topic_id: string | null
           position_x: number | null
           position_y: number | null
           required: boolean
@@ -99,8 +101,10 @@ export type Database = {
           id?: string
           is_end_step?: boolean | null
           is_start_step?: boolean | null
+          is_topic_step?: boolean | null
           next_step_conditions?: Json | null
           parent_step_id?: string | null
+          parent_topic_id?: string | null
           position_x?: number | null
           position_y?: number | null
           required?: boolean
@@ -125,8 +129,10 @@ export type Database = {
           id?: string
           is_end_step?: boolean | null
           is_start_step?: boolean | null
+          is_topic_step?: boolean | null
           next_step_conditions?: Json | null
           parent_step_id?: string | null
+          parent_topic_id?: string | null
           position_x?: number | null
           position_y?: number | null
           required?: boolean
@@ -148,6 +154,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "call_steps"
             referencedColumns: ["step_id"]
+          },
+          {
+            foreignKeyName: "call_steps_parent_topic_id_fkey"
+            columns: ["parent_topic_id"]
+            isOneToOne: false
+            referencedRelation: "topics"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "call_steps_topic_id_fkey"
@@ -579,6 +592,7 @@ export type Database = {
           is_active: boolean
           name: string
           sort_order: number
+          step_id: string | null
           tenant_id: string
           updated_at: string
         }
@@ -591,6 +605,7 @@ export type Database = {
           is_active?: boolean
           name: string
           sort_order?: number
+          step_id?: string | null
           tenant_id?: string
           updated_at?: string
         }
@@ -603,10 +618,19 @@ export type Database = {
           is_active?: boolean
           name?: string
           sort_order?: number
+          step_id?: string | null
           tenant_id?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "topics_step_id_fkey"
+            columns: ["step_id"]
+            isOneToOne: false
+            referencedRelation: "call_steps"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_activities: {
         Row: {

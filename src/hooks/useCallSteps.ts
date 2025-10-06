@@ -57,6 +57,8 @@ export interface CallStep {
   statusBackgroundColor?: string;
   statusIcon?: string;
   topicId?: string;
+  isTopicStep?: boolean; // Marks if this step is a topic selection step
+  parentTopicId?: string; // For sub-steps belonging to a topic
 }
 
 export type NextStepCondition = CallStep['nextStepConditions'][0];
@@ -437,7 +439,9 @@ export function useCallSteps() {
         workflow_name: currentWorkflow,
         tenant_id: tenantId,
         status_background_color: processedStep.statusBackgroundColor,
-        status_icon: processedStep.statusIcon
+        status_icon: processedStep.statusIcon,
+        is_topic_step: processedStep.isTopicStep || false,
+        parent_topic_id: processedStep.parentTopicId
       };
 
       console.log('💾 Saving step data to database:', stepData);
@@ -510,7 +514,8 @@ export function useCallSteps() {
             workflow_name: currentWorkflow,
             tenant_id: tenantId,
             status_background_color: subStep.statusBackgroundColor,
-            status_icon: subStep.statusIcon
+            status_icon: subStep.statusIcon,
+            parent_topic_id: subStep.parentTopicId
           };
           
           const { data: existingSubStep } = await supabase
@@ -644,6 +649,25 @@ export function useCallSteps() {
   // Update steps locally (for agent mode)
   const updateStepsLocally = (newSteps: CallStep[]) => {
     setSteps(newSteps);
+  };
+
+  // Save a sub-step for a topic
+  const saveStepWithTopic = async (step: CallStep, topicId: string): Promise<void> => {
+    const stepWithTopic = {
+      ...step,
+      parentTopicId: topicId
+    };
+    await saveStep(stepWithTopic);
+  };
+
+  // Delete a topic sub-step
+  const deleteTopicSubStep = async (subStepId: string, topicId: string): Promise<void> => {
+    await deleteStep(subStepId);
+  };
+
+  // Get sub-steps for a specific topic
+  const getSubStepsForTopic = (topicId: string): CallStep[] => {
+    return steps.filter(step => step.parentTopicId === topicId);
   };
 
   // Load button templates
@@ -807,6 +831,9 @@ export function useCallSteps() {
     reloadSteps: loadSteps,
     saveButtonTemplate,
     deleteButtonTemplate,
-    loadButtonTemplates
+    loadButtonTemplates,
+    saveStepWithTopic,
+    deleteTopicSubStep,
+    getSubStepsForTopic
   };
 }

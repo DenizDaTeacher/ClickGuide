@@ -45,6 +45,7 @@ export const useTopics = () => {
             icon: topic.icon,
             color: topic.color,
             sort_order: topic.sort_order,
+            step_id: topic.step_id,
             updated_at: new Date().toISOString(),
           })
           .eq('id', topic.id);
@@ -56,6 +57,7 @@ export const useTopics = () => {
           .from('topics')
           .insert({
             tenant_id: tenantId,
+            step_id: topic.step_id,
             name: topic.name || 'Neues Anliegen',
             description: topic.description,
             icon: topic.icon,
