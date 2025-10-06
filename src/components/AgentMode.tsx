@@ -8,6 +8,9 @@ import { CallStep, ActionButton } from "@/hooks/useCallSteps";
 import { TopicSelector } from "./TopicSelector";
 import { SalesCoach } from "./SalesCoach";
 import { Topic } from "@/types/topics";
+import { useTopics } from "@/hooks/useTopics";
+import { supabase } from "@/integrations/supabase/client";
+import { useTenant } from "@/hooks/useTenant";
 
 interface AgentModeProps {
   steps: CallStep[];
@@ -16,6 +19,8 @@ interface AgentModeProps {
 }
 
 export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: AgentModeProps) {
+  const { tenantId } = useTenant();
+  const { topics } = useTopics();
   const [callActive, setCallActive] = useState(false);
   const [currentStep, setCurrentStep] = useState<CallStep | null>(null);
   const [stepHistory, setStepHistory] = useState<CallStep[]>([]);
@@ -26,6 +31,7 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
   const [filteredSteps, setFilteredSteps] = useState<CallStep[]>(steps);
   const [showTopicSelector, setShowTopicSelector] = useState(false);
   const [showSalesCoach, setShowSalesCoach] = useState(false);
+  const [topicSubSteps, setTopicSubSteps] = useState<CallStep[]>([]);
 
   const completedSteps = stepHistory.length;
   const totalSteps = filteredSteps.length;
@@ -46,20 +52,67 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
     }
   }, [selectedTopic, steps]);
 
-  const handleTopicSelect = (topic: Topic) => {
+  const handleTopicSelect = async (topic: Topic) => {
     setSelectedTopic(topic);
     setShowTopicSelector(false);
     
-    // Find first step of selected topic
-    const topicSteps = steps.filter(step => step.topicId === topic.id);
-    if (topicSteps.length > 0) {
-      setCurrentStep(topicSteps[0]);
+    // Load sub-steps for this topic
+    try {
+      const { data, error } = await supabase
+        .from('call_steps')
+        .select('*')
+        .eq('tenant_id', tenantId)
+        .eq('parent_topic_id', topic.id)
+        .eq('step_type', 'sub_step')
+        .order('sort_order', { ascending: true });
+
+      if (error) throw error;
+      
+      // Convert database format to CallStep format
+      const subSteps: CallStep[] = (data || []).map((step: any) => ({
+        id: step.step_id,
+        title: step.title,
+        description: step.description,
+        communication: step.communication,
+        required: step.required,
+        completed: false,
+        stepType: step.step_type,
+        parentStepId: step.parent_step_id,
+        nextStepConditions: step.next_step_conditions || [],
+        positionX: step.position_x,
+        positionY: step.position_y,
+        isStartStep: step.is_start_step,
+        isEndStep: step.is_end_step,
+        category: step.category,
+        workflowName: step.workflow_name,
+        actionButtons: step.action_buttons || [],
+        statusBackgroundColor: step.status_background_color,
+        statusIcon: step.status_icon,
+        sortOrder: step.sort_order,
+        conditionLabel: step.condition_label,
+        subSteps: [],
+        parentTopicId: step.parent_topic_id
+      }));
+      
+      setTopicSubSteps(subSteps);
+      if (subSteps.length > 0) {
+        setCurrentSubStepIndex(0);
+      }
+    } catch (error) {
+      console.error('Error loading topic sub-steps:', error);
     }
   };
 
   // Get current display step (main step or sub-step)
   const getCurrentDisplayStep = () => {
     if (!currentStep) return null;
+    
+    // If we're in a topic step and have selected a topic with sub-steps
+    if (currentStep.isTopicStep && selectedTopic && topicSubSteps.length > 0 && currentSubStepIndex !== null) {
+      return topicSubSteps[currentSubStepIndex];
+    }
+    
+    // Otherwise use sub-steps from current step
     if (currentSubStepIndex !== null && currentStep.subSteps && currentStep.subSteps[currentSubStepIndex]) {
       return currentStep.subSteps[currentSubStepIndex];
     }
@@ -83,16 +136,32 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
       return;
     }
     
-    // Check if this is a topic step - show topic selector
-    if (currentStep.isTopicStep && !selectedTopic) {
-      setShowTopicSelector(true);
-      return;
-    }
-    
     console.log('✅ Completing step:', currentStep.title, 'ID:', currentStep.id);
     console.log('🔍 Status messages before completion:', statusMessages);
     
-    // Handle sub-steps first
+    // Handle topic sub-steps
+    if (currentStep.isTopicStep && selectedTopic && topicSubSteps.length > 0) {
+      if (currentSubStepIndex === null) {
+        // Start with first topic sub-step
+        console.log('🔄 Starting topic sub-steps');
+        setCurrentSubStepIndex(0);
+        return;
+      } else if (currentSubStepIndex < topicSubSteps.length - 1) {
+        // Move to next topic sub-step
+        console.log('🔄 Moving to next topic sub-step');
+        setCurrentSubStepIndex(currentSubStepIndex + 1);
+        return;
+      } else {
+        // All topic sub-steps completed, reset for next time
+        console.log('✅ All topic sub-steps completed');
+        setCurrentSubStepIndex(null);
+        setSelectedTopic(null);
+        setTopicSubSteps([]);
+        // Continue to complete the main step below
+      }
+    }
+    
+    // Handle regular sub-steps
     if (currentStep.subSteps && currentStep.subSteps.length > 0) {
       if (currentSubStepIndex === null) {
         // Start with first sub-step
@@ -230,6 +299,8 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
     setCurrentStep(startStep);
     setStepHistory([]);
     setCurrentSubStepIndex(null);
+    setSelectedTopic(null);
+    setTopicSubSteps([]);
     const resetSteps = steps.map(step => ({ ...step, completed: false }));
     onStepsUpdate(resetSteps);
     setAuthenticationFailed(false);
@@ -281,24 +352,19 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
 
       {callActive && currentDisplayStep && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Topic Selector - show if current step is topic step and no topic selected */}
-          {currentStep?.isTopicStep && showTopicSelector && (
-            <div className="lg:col-span-2">
-              <TopicSelector
-                onSelectTopic={handleTopicSelect}
-                selectedTopicId={selectedTopic?.id}
-              />
-            </div>
-          )}
-
-          {/* Current Step - show only if not showing topic selector */}
-          {(!currentStep?.isTopicStep || !showTopicSelector) && (
           <div className="lg:col-span-2">
             <Card className="shadow-elevated">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-xl">
-                    {currentSubStepIndex !== null ? (
+                    {currentSubStepIndex !== null && selectedTopic ? (
+                      <div className="space-y-1">
+                        <div className="text-base text-muted-foreground">
+                          {currentStep?.title} → {selectedTopic.name} → Unterschritt {currentSubStepIndex + 1}
+                        </div>
+                        <div>{currentDisplayStep.title}</div>
+                      </div>
+                    ) : currentSubStepIndex !== null ? (
                       <div className="space-y-1">
                         <div className="text-base text-muted-foreground">
                           {currentStep?.title} → Unterschritt {currentSubStepIndex + 1}
@@ -339,8 +405,41 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
                   <p className="italic text-foreground">{currentDisplayStep.communication}</p>
                 </div>
 
+                {/* Topic Selection for Topic Steps */}
+                {currentStep?.isTopicStep && !selectedTopic && (
+                  <div className="space-y-3">
+                    <h3 className="font-semibold flex items-center">
+                      <Info className="w-4 h-4 mr-2" />
+                      Wählen Sie ein Anliegen:
+                    </h3>
+                    <div className="grid gap-2">
+                      {topics
+                        .filter(topic => topic.step_id === currentStep.id)
+                        .map((topic) => (
+                          <Button
+                            key={topic.id}
+                            onClick={() => handleTopicSelect(topic)}
+                            variant="outline"
+                            className="justify-start h-auto p-4 border-2"
+                            style={{ borderColor: topic.color || undefined }}
+                          >
+                            <div className="text-left flex items-center gap-3">
+                              {topic.icon && <span className="text-2xl">{topic.icon}</span>}
+                              <div>
+                                <div className="font-medium">{topic.name}</div>
+                                {topic.description && (
+                                  <div className="text-sm text-muted-foreground">{topic.description}</div>
+                                )}
+                              </div>
+                            </div>
+                          </Button>
+                        ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* Branch Options */}
-                {currentStep.nextStepConditions.length > 0 ? (
+                {!currentStep?.isTopicStep && currentStep?.nextStepConditions.length > 0 ? (
                   <div className="space-y-3">
                     <h3 className="font-semibold flex items-center">
                       <GitBranch className="w-4 h-4 mr-2" />
@@ -366,14 +465,16 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
                   </div>
                 ) : (
                   <div className="flex flex-wrap gap-3">
-                    {/* Default completion button - always present */}
-                    <Button 
-                      onClick={() => handleStepComplete()}
-                      className="bg-gradient-primary"
-                    >
-                      <CheckCircle className="w-4 h-4 mr-2" />
-                      Schritt abgeschlossen
-                    </Button>
+                    {/* Only show completion button if not a topic step OR if topic is selected */}
+                    {(!currentStep?.isTopicStep || selectedTopic) && (
+                      <Button 
+                        onClick={() => handleStepComplete()}
+                        className="bg-gradient-primary"
+                      >
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                        Schritt abgeschlossen
+                      </Button>
+                    )}
                     
                     {/* Custom action buttons - show from current display step */}
                     {currentDisplayStep && currentDisplayStep.actionButtons && currentDisplayStep.actionButtons
@@ -426,7 +527,6 @@ export default function AgentMode({ steps, onStepsUpdate, currentWorkflow }: Age
               </CardContent>
             </Card>
           </div>
-          )}
 
           {/* Progress Sidebar */}
           <div className="space-y-6">
