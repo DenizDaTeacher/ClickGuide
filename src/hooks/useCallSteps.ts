@@ -386,7 +386,13 @@ export function useCallSteps() {
   // Save a step to Supabase
   const saveStep = async (step: CallStep, isNew: boolean = false) => {
     try {
-      console.log('💾 Saving step...', { stepTitle: step.title, isNew, currentWorkflow });
+      console.log('💾 Saving step...', { 
+        stepTitle: step.title, 
+        isNew, 
+        currentWorkflow,
+        isTopicStep: step.isTopicStep,
+        isServicePlusStep: step.isServicePlusStep 
+      });
       
       // Ensure step has default button if no buttons exist
       let processedStep = { ...step };
@@ -456,7 +462,10 @@ export function useCallSteps() {
         parent_topic_id: processedStep.parentTopicId
       };
 
-      console.log('💾 Saving step data to database:', stepData);
+      console.log('💾 Saving step data to database:', {
+        ...stepData,
+        step_id: processedStep.id
+      });
 
       if (isNew) {
         // Insert new step
@@ -505,9 +514,12 @@ export function useCallSteps() {
         console.log('💾 Step updated successfully:', data);
       }
       
-      // Save sub-steps if they exist
+      // Save sub-steps if they exist (but not topic sub-steps, they are saved separately)
       if (processedStep.subSteps && processedStep.subSteps.length > 0) {
         for (const subStep of processedStep.subSteps) {
+          // Skip topic sub-steps as they are managed separately
+          if (subStep.parentTopicId) continue;
+          
           const subStepData = {
             title: subStep.title,
             description: subStep.description,
@@ -527,7 +539,9 @@ export function useCallSteps() {
             tenant_id: tenantId,
             status_background_color: subStep.statusBackgroundColor,
             status_icon: subStep.statusIcon,
-            parent_topic_id: subStep.parentTopicId
+            parent_topic_id: subStep.parentTopicId,
+            is_topic_step: false,
+            is_service_plus_step: false
           };
           
           const { data: existingSubStep } = await supabase
@@ -693,6 +707,8 @@ export function useCallSteps() {
         position_y: 0,
         is_start_step: false,
         is_end_step: false,
+        is_topic_step: false,
+        is_service_plus_step: false,
         category: stepWithTopic.category,
         workflow_name: currentWorkflow,
         tenant_id: tenantId,

@@ -103,6 +103,8 @@ export function WorkflowStepEditor({
       positionY: 0,
       isStartStep: false,
       isEndStep: false,
+      isTopicStep: false,
+      isServicePlusStep: false,
       category: '',
       subSteps: [],
       sortOrder: allSteps ? allSteps.length + 1 : 1,
@@ -207,18 +209,33 @@ export function WorkflowStepEditor({
 
   const handleInputChange = (field: keyof CallStep, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+    
+    // Auto-save when topic or service plus toggles change, if we're editing an existing step
+    if ((field === 'isTopicStep' || field === 'isServicePlusStep') && step?.id) {
+      // Use setTimeout to batch the save after React state update
+      setTimeout(() => {
+        const updatedStep = { ...formData, [field]: value };
+        const finalData = ensureDefaultButton(updatedStep);
+        console.log('🔄 Auto-saving step after toggle change:', field, value);
+        onSave(finalData);
+      }, 100);
+    }
   };
 
   const handleSave = () => {
     console.log('💾 Saving step in editor:', { 
       title: formData.title, 
       actionButtons: formData.actionButtons?.length,
-      stepType: formData.stepType
+      stepType: formData.stepType,
+      isTopicStep: formData.isTopicStep,
+      isServicePlusStep: formData.isServicePlusStep
     });
     const finalData = ensureDefaultButton(formData);
     console.log('💾 Final data being saved:', { 
       title: finalData.title, 
-      actionButtons: finalData.actionButtons?.length 
+      actionButtons: finalData.actionButtons?.length,
+      isTopicStep: finalData.isTopicStep,
+      isServicePlusStep: finalData.isServicePlusStep
     });
     onSave(finalData);
   };
