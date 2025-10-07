@@ -469,8 +469,8 @@ export default function AgentMode({
                         </Button>)}
                     </div>
                   </div> : <div className="flex flex-wrap gap-3">
-                    {/* Only show completion button if not a topic step OR if topic is selected */}
-                    {(!currentStep?.isTopicStep || selectedTopic) && <Button onClick={() => handleStepComplete()} className="bg-gradient-primary">
+                    {/* Show completion button if: not a topic step OR topic is selected OR no topics defined for this step */}
+                    {(!currentStep?.isTopicStep || selectedTopic || topics.filter(topic => topic.step_id === currentStep?.id).length === 0) && <Button onClick={() => handleStepComplete()} className="bg-gradient-primary">
                         <CheckCircle className="w-4 h-4 mr-2" />
                         Schritt abgeschlossen
                       </Button>}
