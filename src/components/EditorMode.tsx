@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { WorkflowStepEditor } from "./WorkflowStepEditor";
 import { ObjectionManager } from "./ObjectionManager";
 import { TemplateSelector } from "./TemplateSelector";
+import { AnalyticsExport } from "./AnalyticsExport";
 import { CallStep } from "@/hooks/useCallSteps";
 import {
   DndContext,

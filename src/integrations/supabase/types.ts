@@ -62,6 +62,57 @@ export type Database = {
         }
         Relationships: []
       }
+      call_analytics: {
+        Row: {
+          call_status: string
+          completed_steps: Json | null
+          created_at: string | null
+          duration_seconds: number | null
+          ended_at: string | null
+          id: string
+          session_id: string
+          started_at: string
+          steps_completed: number
+          steps_total: number
+          tenant_id: string
+          updated_at: string | null
+          user_ip: string | null
+          workflow_name: string
+        }
+        Insert: {
+          call_status?: string
+          completed_steps?: Json | null
+          created_at?: string | null
+          duration_seconds?: number | null
+          ended_at?: string | null
+          id?: string
+          session_id: string
+          started_at: string
+          steps_completed?: number
+          steps_total?: number
+          tenant_id: string
+          updated_at?: string | null
+          user_ip?: string | null
+          workflow_name: string
+        }
+        Update: {
+          call_status?: string
+          completed_steps?: Json | null
+          created_at?: string | null
+          duration_seconds?: number | null
+          ended_at?: string | null
+          id?: string
+          session_id?: string
+          started_at?: string
+          steps_completed?: number
+          steps_total?: number
+          tenant_id?: string
+          updated_at?: string | null
+          user_ip?: string | null
+          workflow_name?: string
+        }
+        Relationships: []
+      }
       call_steps: {
         Row: {
           action_buttons: Json | null

@@ -9,6 +9,7 @@ import { TopicSelector } from "./TopicSelector";
 import { SalesCoach } from "./SalesCoach";
 import { Topic } from "@/types/topics";
 import { useTopics } from "@/hooks/useTopics";
+import { useCallAnalytics } from "@/hooks/useCallAnalytics";
 import { supabase } from "@/integrations/supabase/client";
 import { useTenant } from "@/hooks/useTenant";
 interface AgentModeProps {
@@ -27,6 +28,7 @@ export default function AgentMode({
   const {
     topics
   } = useTopics();
+  const { startCallSession, trackStepCompletion, endCallSession, currentSession } = useCallAnalytics(currentWorkflow, steps);
   const [callActive, setCallActive] = useState(false);
   const [currentStep, setCurrentStep] = useState<CallStep | null>(null);
   const [stepHistory, setStepHistory] = useState<CallStep[]>([]);
@@ -157,6 +159,9 @@ export default function AgentMode({
     }
     console.log('✅ Completing step:', currentStep.title, 'ID:', currentStep.id);
     console.log('🔍 Status messages before completion:', statusMessages);
+
+    // Track step completion for analytics
+    trackStepCompletion(currentStep);
 
     // Handle topic sub-steps
     if (currentStep.isTopicStep && selectedTopic && topicSubSteps.length > 0) {
@@ -306,6 +311,10 @@ export default function AgentMode({
     console.log('🚀 Starting call with steps:', steps);
     console.log('🚀 Current workflow:', currentWorkflow);
     setCallActive(true);
+    
+    // Start analytics tracking
+    startCallSession();
+    
     const startStep = getStartStep();
     console.log('🚀 Setting current step to:', startStep);
     setCurrentStep(startStep);
@@ -322,6 +331,12 @@ export default function AgentMode({
     setStatusMessages([]);
   };
   const endCall = () => {
+    // End analytics tracking
+    if (currentSession) {
+      const wasCompleted = currentStep?.isEndStep || false;
+      endCallSession(wasCompleted ? 'completed' : 'abandoned');
+    }
+    
     setCallActive(false);
     setCurrentStep(null);
     setStepHistory([]);
