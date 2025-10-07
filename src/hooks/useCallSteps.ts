@@ -94,59 +94,47 @@ export function useCallSteps() {
         return;
       }
 
-      // Create default steps with project-specific IDs
-      const projectPrefix = projectId.toLowerCase().replace(/[^a-z0-9]/g, '');
-      const defaultSteps = [
-        {
-          step_id: `${projectPrefix}_greeting_${Date.now()}`,
-          title: 'Begrüßung',
-          description: 'Freundliche Begrüßung und Firmenvorstellung',
-          communication: 'Guten Tag! Hier ist [Name] von [Firma]. Wie kann ich Ihnen heute helfen?',
-          required: true,
-          sort_order: 1,
-          tenant_id: projectId,
-          workflow_name: 'Gesprächsschritte',
-          category: 'Begrüßung',
-          step_type: 'normal',
-          action_buttons: [
-            {
-              id: `action-${Date.now()}`,
-              label: 'Weiter zum nächsten Schritt',
-              variant: 'default',
-              actionType: 'complete',
-              icon: '✓',
-              enabled: true
-            }
-          ]
-        },
-        {
-          step_id: `${projectPrefix}_identification_${Date.now() + 1}`,
-          title: 'Kundenidentifikation',
-          description: 'Sicherheitsabfrage zur Identitätsprüfung',
-          communication: 'Zur Sicherheit benötige ich von Ihnen bitte Ihren vollständigen Namen und Ihr Geburtsdatum.',
-          required: true,
-          sort_order: 2,
-          tenant_id: projectId,
-          workflow_name: 'Gesprächsschritte',
-          category: 'Authentifizierung',
-          step_type: 'normal',
-          action_buttons: [
-            {
-              id: `action-${Date.now() + 1}`,
-              label: 'Kunde identifiziert',
-              variant: 'default',
-              actionType: 'complete',
-              icon: '✓',
-              enabled: true
-            }
-          ]
-        }
-      ];
+      // Load "Der perfekte Call" template
+      console.log('📋 Loading "Der perfekte Call" template for new project');
+      const { data: template, error: templateError } = await supabase
+        .from('workflow_templates')
+        .select('*')
+        .eq('name', 'Der perfekte Call')
+        .eq('is_default', true)
+        .single();
 
-      // Insert all default steps at once
-      const { error } = await supabase
-        .from('call_steps')
-        .insert(defaultSteps);
+      if (templateError || !template) {
+        console.error('❌ Template not found, creating basic steps instead');
+        // Fallback: create basic steps
+        const projectPrefix = projectId.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const defaultSteps = [
+          {
+            step_id: `${projectPrefix}_greeting_${Date.now()}`,
+            title: 'Begrüßung',
+            description: 'Freundliche Begrüßung und Firmenvorstellung',
+            communication: 'Guten Tag! Hier ist [Name] von [Firma]. Wie kann ich Ihnen heute helfen?',
+            required: true,
+            sort_order: 1,
+            tenant_id: projectId,
+            workflow_name: 'Gesprächsschritte',
+            category: 'Begrüßung',
+            step_type: 'normal',
+            action_buttons: [
+              {
+                id: `action-${Date.now()}`,
+                label: 'Weiter zum nächsten Schritt',
+                variant: 'default',
+                actionType: 'complete',
+                icon: '✓',
+                enabled: true
+              }
+            ]
+          }
+        ];
+
+        const { error } = await supabase
+          .from('call_steps')
+          .insert(defaultSteps);
       
       if (error) {
         console.error('Error creating default steps:', error);

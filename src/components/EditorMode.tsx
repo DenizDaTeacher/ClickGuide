@@ -564,6 +564,8 @@ export default function EditorMode({
               Vorlagen laden
             </Button>
 
+            <AnalyticsExport />
+
             {currentWorkflow !== 'Gesprächsschritte' && (
               <Button 
                 variant="outline" 
