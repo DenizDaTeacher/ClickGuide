@@ -13,21 +13,36 @@ export const useObjections = () => {
     if (!tenantId) return;
     
     try {
-      // Load objections from current tenant AND from 'default' (global templates)
-      const { data: objectionsData, error: objectionsError } = await supabase
+      // First, try to load tenant-specific objections
+      const { data: tenantObjectionsData, error: tenantObjectionsError } = await supabase
         .from('objections')
         .select('*')
-        .in('tenant_id', [tenantId, 'default'])
+        .eq('tenant_id', tenantId)
         .eq('is_active', true)
         .order('priority', { ascending: false });
 
-      if (objectionsError) throw objectionsError;
+      if (tenantObjectionsError) throw tenantObjectionsError;
 
-      // Load responses from current tenant AND from 'default'
+      // If tenant has no objections, load from 'default'
+      let objectionsData = tenantObjectionsData;
+      if (!tenantObjectionsData || tenantObjectionsData.length === 0) {
+        const { data: defaultObjectionsData, error: defaultObjectionsError } = await supabase
+          .from('objections')
+          .select('*')
+          .eq('tenant_id', 'default')
+          .eq('is_active', true)
+          .order('priority', { ascending: false });
+
+        if (defaultObjectionsError) throw defaultObjectionsError;
+        objectionsData = defaultObjectionsData;
+      }
+
+      // Load responses for the objections we have
+      const objectionIds = (objectionsData || []).map(o => o.id);
       const { data: responsesData, error: responsesError } = await supabase
         .from('responses')
         .select('*')
-        .in('tenant_id', [tenantId, 'default'])
+        .in('objection_id', objectionIds)
         .order('sort_order', { ascending: true });
 
       if (responsesError) throw responsesError;
