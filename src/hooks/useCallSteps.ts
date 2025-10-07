@@ -135,15 +135,72 @@ export function useCallSteps() {
         const { error } = await supabase
           .from('call_steps')
           .insert(defaultSteps);
-      
-      if (error) {
-        console.error('Error creating default steps:', error);
-        throw error;
+        
+        if (error) {
+          console.error('Error creating default steps:', error);
+          throw error;
+        }
+
+        console.log('✅ Basic default workflow created');
+        return;
       }
 
-      console.log('✅ Default workflow created successfully');
+      // Load template data into project
+      const templateData = template.template_data as any;
+      
+      // Insert steps from template
+      if (templateData.steps && templateData.steps.length > 0) {
+        const stepsToInsert = templateData.steps.map((step: any) => ({
+          ...step,
+          tenant_id: projectId,
+          workflow_name: 'Gesprächsschritte',
+          step_id: `${projectId.toLowerCase()}_${step.step_id}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+        }));
+        
+        const { error: stepsError } = await supabase
+          .from('call_steps')
+          .insert(stepsToInsert);
+        
+        if (stepsError) throw stepsError;
+      }
+      
+      // Insert topics from template
+      if (templateData.topics && templateData.topics.length > 0) {
+        const topicsToInsert = templateData.topics.map((topic: any) => ({
+          ...topic,
+          tenant_id: projectId,
+          id: undefined // Let DB generate new IDs
+        }));
+        
+        await supabase
+          .from('topics')
+          .insert(topicsToInsert);
+      }
+      
+      // Insert button templates from template
+      if (templateData.button_templates && templateData.button_templates.length > 0) {
+        const templatesToInsert = templateData.button_templates.map((template: any) => ({
+          ...template,
+          tenant_id: projectId,
+          id: undefined // Let DB generate new IDs
+        }));
+        
+        await supabase
+          .from('button_templates')
+          .insert(templatesToInsert);
+      }
+
+      console.log('✅ Default workflow created from template successfully');
+      toast({
+        title: 'Projekt initialisiert',
+        description: '"Der perfekte Call" wurde als Standard-Workflow geladen',
+      });
     } catch (error) {
       console.error('Error creating default workflow:', error);
+      toast({
+        title: 'Fehler beim Erstellen der Standard-Schritte',
+        variant: 'destructive',
+      });
     }
   };
 
