@@ -473,14 +473,6 @@ export default function AgentMode({
                         Schritt abgeschlossen
                       </Button>}
                     
-                    {/* Custom action buttons - show from current display step */}
-                    {currentDisplayStep && currentDisplayStep.actionButtons && currentDisplayStep.actionButtons.filter(button => button.enabled !== false).map(button => {
-                return <Button key={button.id} variant={button.variant} onClick={() => handleActionButton(button)}>
-                            {button.icon && <span className="mr-2">{button.icon}</span>}
-                            {button.label}
-                          </Button>;
-              })}
-                    
                     {/* Legacy decision button for backward compatibility */}
                     {currentStep.stepType === 'decision' && (!currentStep.actionButtons || currentStep.actionButtons.length === 0) && <Button variant="destructive" onClick={() => {
                 handleAuthenticationFailure();
