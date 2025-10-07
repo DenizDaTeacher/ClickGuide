@@ -146,9 +146,25 @@ export const RichTextEditor = ({ value, onChange, placeholder }: RichTextEditorP
               type="button"
               variant="ghost"
               size="sm"
+              onClick={() => editor.chain().focus().deleteColumn().run()}
+            >
+              Spalte −
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
               onClick={() => editor.chain().focus().addRowAfter().run()}
             >
               Zeile +
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => editor.chain().focus().deleteRow().run()}
+            >
+              Zeile −
             </Button>
             <Button
               type="button"
