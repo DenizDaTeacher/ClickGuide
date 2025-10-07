@@ -139,7 +139,7 @@ function SortableStepCard({ step, index, onEdit, onDelete, onUpdateStep }: Sorta
     isDragging,
   } = useSortable({ id: step.id });
 
-  const sensors = useSensors(
+  const subStepSensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
@@ -243,7 +243,7 @@ function SortableStepCard({ step, index, onEdit, onDelete, onUpdateStep }: Sorta
           <div className="mt-4">
             <h4 className="text-sm font-medium mb-2">Unterschritte:</h4>
             <DndContext
-              sensors={sensors}
+              sensors={subStepSensors}
               collisionDetection={closestCenter}
               onDragEnd={handleSubStepDragEnd}
             >
