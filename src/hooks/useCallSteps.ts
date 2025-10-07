@@ -902,6 +902,117 @@ export function useCallSteps() {
     }
   }, [buttonTemplates]);
 
+  // Load template into current project
+  const loadTemplateIntoProject = async (templateId: string, templateName: string) => {
+    try {
+      setLoading(true);
+      console.log('📋 Loading template into project:', templateName);
+      
+      // Fetch the template
+      const { data: template, error: templateError } = await supabase
+        .from('workflow_templates')
+        .select('*')
+        .eq('id', templateId)
+        .single();
+      
+      if (templateError) throw templateError;
+      if (!template) {
+        throw new Error('Template not found');
+      }
+      
+      const templateData = template.template_data as any;
+      
+      // Clear existing steps for this workflow
+      const { error: deleteError } = await supabase
+        .from('call_steps')
+        .delete()
+        .eq('tenant_id', tenantId)
+        .eq('workflow_name', templateName);
+      
+      if (deleteError) throw deleteError;
+      
+      // Insert steps from template
+      if (templateData.steps && templateData.steps.length > 0) {
+        const stepsToInsert = templateData.steps.map((step: any) => ({
+          ...step,
+          tenant_id: tenantId,
+          workflow_name: templateName,
+          step_id: `${tenantId.toLowerCase()}_${step.step_id}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+        }));
+        
+        const { error: stepsError } = await supabase
+          .from('call_steps')
+          .insert(stepsToInsert);
+        
+        if (stepsError) throw stepsError;
+      }
+      
+      // Insert topics from template
+      if (templateData.topics && templateData.topics.length > 0) {
+        // First, clear existing topics
+        await supabase
+          .from('topics')
+          .delete()
+          .eq('tenant_id', tenantId);
+        
+        const topicsToInsert = templateData.topics.map((topic: any) => ({
+          ...topic,
+          tenant_id: tenantId,
+          id: undefined // Let DB generate new IDs
+        }));
+        
+        await supabase
+          .from('topics')
+          .insert(topicsToInsert);
+      }
+      
+      // Insert button templates from template
+      if (templateData.button_templates && templateData.button_templates.length > 0) {
+        // Check which templates already exist
+        const { data: existing } = await supabase
+          .from('button_templates')
+          .select('name')
+          .eq('tenant_id', tenantId);
+        
+        const existingNames = new Set(existing?.map(t => t.name) || []);
+        
+        const templatesToInsert = templateData.button_templates
+          .filter((template: any) => !existingNames.has(template.name))
+          .map((template: any) => ({
+            ...template,
+            tenant_id: tenantId,
+            id: undefined // Let DB generate new IDs
+          }));
+        
+        if (templatesToInsert.length > 0) {
+          await supabase
+            .from('button_templates')
+            .insert(templatesToInsert);
+        }
+      }
+      
+      // Reload everything
+      await loadWorkflows();
+      await loadButtonTemplates();
+      await loadSteps();
+      
+      toast({
+        title: "Template geladen",
+        description: `"${template.name}" wurde erfolgreich in dein Projekt geladen`,
+      });
+      
+    } catch (error) {
+      console.error('Error loading template:', error);
+      toast({
+        title: "Fehler",
+        description: "Template konnte nicht geladen werden",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Load steps when workflow or tenant changes
   useEffect(() => {
     if (currentWorkflow && tenantId) {
@@ -929,6 +1040,7 @@ export function useCallSteps() {
     loadButtonTemplates,
     saveStepWithTopic,
     deleteTopicSubStep,
-    getSubStepsForTopic
+    getSubStepsForTopic,
+    loadTemplateIntoProject
   };
 }

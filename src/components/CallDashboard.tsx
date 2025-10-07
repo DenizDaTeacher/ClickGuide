@@ -31,7 +31,8 @@ export default function CallDashboard() {
     deleteButtonTemplate,
     saveStepWithTopic,
     deleteTopicSubStep,
-    getSubStepsForTopic
+    getSubStepsForTopic,
+    loadTemplateIntoProject
   } = useCallSteps();
 
   const handleEditorAccess = () => {
@@ -129,6 +130,7 @@ export default function CallDashboard() {
             saveStepWithTopic={saveStepWithTopic}
             deleteTopicSubStep={deleteTopicSubStep}
             getSubStepsForTopic={getSubStepsForTopic}
+            loadTemplateIntoProject={loadTemplateIntoProject}
           />
         )}
 

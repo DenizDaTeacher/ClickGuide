@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, Edit, Trash2, FolderPlus, Trash, GripVertical, CheckCircle } from "lucide-react";
+import { Plus, Edit, Trash2, FolderPlus, Trash, GripVertical, CheckCircle, BookOpen } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { WorkflowStepEditor } from "./WorkflowStepEditor";
 import { ObjectionManager } from "./ObjectionManager";
+import { TemplateSelector } from "./TemplateSelector";
 import { CallStep } from "@/hooks/useCallSteps";
 import {
   DndContext,
@@ -51,6 +52,7 @@ interface EditorModeProps {
   saveStepWithTopic: (step: CallStep, topicId: string) => Promise<void>;
   deleteTopicSubStep: (subStepId: string, topicId: string) => Promise<void>;
   getSubStepsForTopic: (topicId: string) => CallStep[];
+  loadTemplateIntoProject?: (templateId: string, templateName: string) => Promise<void>;
 }
 
 interface SortableStepCardProps {
@@ -296,7 +298,8 @@ export default function EditorMode({
   onDeleteButtonTemplate,
   saveStepWithTopic,
   deleteTopicSubStep,
-  getSubStepsForTopic
+  getSubStepsForTopic,
+  loadTemplateIntoProject
 }: EditorModeProps) {
   const [editingStep, setEditingStep] = useState<CallStep | null>(null);
   const [isCreatingNew, setIsCreatingNew] = useState(false);
@@ -305,6 +308,7 @@ export default function EditorMode({
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [saveDialogType, setSaveDialogType] = useState<'local' | 'global'>('local');
   const [saveWorkflowName, setSaveWorkflowName] = useState("");
+  const [showTemplateSelector, setShowTemplateSelector] = useState(false);
   const { toast } = useToast();
 
   const handleStepUpdate = (updatedStep: CallStep) => {
@@ -550,6 +554,15 @@ export default function EditorMode({
               </DialogContent>
             </Dialog>
 
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setShowTemplateSelector(true)}
+            >
+              <BookOpen className="w-4 h-4 mr-2" />
+              Vorlagen laden
+            </Button>
+
             {currentWorkflow !== 'Gesprächsschritte' && (
               <Button 
                 variant="outline" 
@@ -674,9 +687,18 @@ export default function EditorMode({
               Speichern
             </Button>
           </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Template Selector */}
+      {loadTemplateIntoProject && (
+        <TemplateSelector
+          isOpen={showTemplateSelector}
+          onClose={() => setShowTemplateSelector(false)}
+          onTemplateLoad={loadTemplateIntoProject}
+        />
+      )}
     </>
   );
 }
