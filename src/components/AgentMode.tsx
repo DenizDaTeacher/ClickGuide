@@ -389,6 +389,17 @@ export default function AgentMode({
                   </h3>
                   <p className="text-muted-foreground">{currentDisplayStep.description}</p>
                 </div>
+
+                {/* Display image if available */}
+                {currentDisplayStep.imageUrl && (
+                  <div className="bg-gradient-card p-4 rounded-lg">
+                    <img 
+                      src={currentDisplayStep.imageUrl} 
+                      alt={currentDisplayStep.title}
+                      className="w-full h-auto rounded-lg shadow-md"
+                    />
+                  </div>
+                )}
                 
                 <div className="bg-gradient-card p-4 rounded-lg">
                   <h3 className="font-semibold mb-2 flex items-center">
