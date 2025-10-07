@@ -38,9 +38,11 @@ export default function AgentMode({
   const [showSalesCoach, setShowSalesCoach] = useState(false);
   const [topicSubSteps, setTopicSubSteps] = useState<CallStep[]>([]);
   const [expandedTopics, setExpandedTopics] = useState<Set<string>>(new Set());
-  const completedSteps = stepHistory.length;
-  const totalSteps = filteredSteps.length;
-  const requiredSteps = filteredSteps.filter(step => step.required);
+  // Filter out sub-steps for progress calculation
+  const mainStepsOnly = filteredSteps.filter(step => step.stepType !== 'sub_step' && !step.parentStepId);
+  const completedSteps = stepHistory.filter(step => step.stepType !== 'sub_step' && !step.parentStepId).length;
+  const totalSteps = mainStepsOnly.length;
+  const requiredSteps = mainStepsOnly.filter(step => step.required);
   const completedRequiredSteps = stepHistory.filter(step => step.required).length;
 
   // Filter steps based on selected topic
@@ -561,7 +563,7 @@ export default function AgentMode({
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {steps.length === 0 ? <p className="text-sm text-muted-foreground">Keine Schritte konfiguriert</p> : steps.map((step, index) => {
+                  {steps.length === 0 ? <p className="text-sm text-muted-foreground">Keine Schritte konfiguriert</p> : steps.filter(step => step.stepType !== 'sub_step' && !step.parentStepId).map((step, index) => {
                 const isCompleted = stepHistory.some(completedStep => completedStep.id === step.id);
                 const isCurrent = currentStep && currentStep.id === step.id;
                 const isPending = !isCompleted && !isCurrent;
