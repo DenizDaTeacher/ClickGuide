@@ -121,6 +121,8 @@ export default function CallDashboard() {
             onWorkflowChange={setCurrentWorkflow}
             onCreateWorkflow={createWorkflow}
             onDeleteWorkflow={deleteWorkflow}
+            onReorderSteps={reorderSteps}
+            onSaveAndExecute={handleSaveAndExecute}
             buttonTemplates={buttonTemplates}
             onSaveButtonTemplate={saveButtonTemplate}
             onDeleteButtonTemplate={deleteButtonTemplate}
