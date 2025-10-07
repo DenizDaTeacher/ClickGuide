@@ -566,7 +566,7 @@ export default function EditorMode({
 
             <AnalyticsExport />
 
-            {currentWorkflow !== 'Gesprächsschritte' && (
+            {currentWorkflow !== 'Der perfekte Call' && (
               <Button 
                 variant="outline" 
                 size="sm"

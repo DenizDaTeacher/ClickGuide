@@ -68,7 +68,7 @@ export type NextStepCondition = CallStep['nextStepConditions'][0];
 export function useCallSteps() {
   const [steps, setSteps] = useState<CallStep[]>([]);
   const [loading, setLoading] = useState(true);
-  const [currentWorkflow, setCurrentWorkflow] = useState<string>('Gesprächsschritte');
+  const [currentWorkflow, setCurrentWorkflow] = useState<string>('Der perfekte Call');
   const [workflows, setWorkflows] = useState<string[]>([]);
   const [buttonTemplates, setButtonTemplates] = useState<ButtonTemplate[]>([]);
   const { toast } = useToast();
@@ -86,7 +86,7 @@ export function useCallSteps() {
         .from('call_steps')
         .select('id')
         .eq('tenant_id', projectId)
-        .eq('workflow_name', 'Gesprächsschritte')
+        .eq('workflow_name', 'Der perfekte Call')
         .limit(1);
 
       if (existingSteps && existingSteps.length > 0) {
@@ -101,7 +101,7 @@ export function useCallSteps() {
         .select('*')
         .eq('name', 'Der perfekte Call')
         .eq('is_default', true)
-        .single();
+        .maybeSingle();
 
       if (templateError || !template) {
         console.error('❌ Template not found, creating basic steps instead');
@@ -116,7 +116,7 @@ export function useCallSteps() {
             required: true,
             sort_order: 1,
             tenant_id: projectId,
-            workflow_name: 'Gesprächsschritte',
+            workflow_name: 'Der perfekte Call',
             category: 'Begrüßung',
             step_type: 'normal',
             action_buttons: [
@@ -153,7 +153,7 @@ export function useCallSteps() {
         const stepsToInsert = templateData.steps.map((step: any) => ({
           ...step,
           tenant_id: projectId,
-          workflow_name: 'Gesprächsschritte',
+          workflow_name: 'Der perfekte Call',
           step_id: `${projectId.toLowerCase()}_${step.step_id}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
         }));
         
