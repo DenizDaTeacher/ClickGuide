@@ -38,6 +38,8 @@ export default function AgentMode({
   const [showSalesCoach, setShowSalesCoach] = useState(false);
   const [topicSubSteps, setTopicSubSteps] = useState<CallStep[]>([]);
   const [expandedTopics, setExpandedTopics] = useState<Set<string>>(new Set());
+  const [isImageModalOpen, setIsImageModalOpen] = useState(false);
+  const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
   // Filter out sub-steps for progress calculation
   const mainStepsOnly = filteredSteps.filter(step => step.stepType !== 'sub_step' && !step.parentStepId);
   const completedSteps = stepHistory.filter(step => step.stepType !== 'sub_step' && !step.parentStepId).length;
@@ -396,7 +398,11 @@ export default function AgentMode({
                     <img 
                       src={currentDisplayStep.imageUrl} 
                       alt={currentDisplayStep.title}
-                      className="w-full h-auto rounded-lg shadow-md"
+                      className="w-full h-auto rounded-lg shadow-md cursor-pointer hover:opacity-90 transition-opacity"
+                      onClick={() => {
+                        setSelectedImageUrl(currentDisplayStep.imageUrl || null);
+                        setIsImageModalOpen(true);
+                      }}
                     />
                   </div>
                 )}
@@ -636,5 +642,24 @@ export default function AgentMode({
             </Button>
           </CardContent>
         </Card>}
+
+      {/* Image Modal */}
+      {isImageModalOpen && selectedImageUrl && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 cursor-pointer backdrop-blur-sm"
+          onClick={() => {
+            setIsImageModalOpen(false);
+            setSelectedImageUrl(null);
+          }}
+        >
+          <div className="relative max-w-7xl max-h-[90vh] p-4">
+            <img
+              src={selectedImageUrl}
+              alt="Vergrößertes Bild"
+              className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
+            />
+          </div>
+        </div>
+      )}
     </div>;
 }
