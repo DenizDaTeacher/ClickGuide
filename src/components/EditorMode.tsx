@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus, Edit, Trash2, FolderPlus, Trash, GripVertical, CheckCircle } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -300,6 +302,10 @@ export default function EditorMode({
   const [isCreatingNew, setIsCreatingNew] = useState(false);
   const [newWorkflowName, setNewWorkflowName] = useState("");
   const [showNewWorkflowDialog, setShowNewWorkflowDialog] = useState(false);
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [saveDialogType, setSaveDialogType] = useState<'local' | 'global'>('local');
+  const [saveWorkflowName, setSaveWorkflowName] = useState("");
+  const { toast } = useToast();
 
   const handleStepUpdate = (updatedStep: CallStep) => {
     console.log('🔄 Updating step:', updatedStep.title);
@@ -363,6 +369,85 @@ export default function EditorMode({
     }
   };
 
+  const handleSaveWorkflowLocal = () => {
+    setSaveDialogType('local');
+    setSaveWorkflowName(currentWorkflow);
+    setShowSaveDialog(true);
+  };
+
+  const handleSaveWorkflowGlobal = () => {
+    setSaveDialogType('global');
+    setSaveWorkflowName(currentWorkflow);
+    setShowSaveDialog(true);
+  };
+
+  const handleConfirmSaveWorkflow = async () => {
+    if (!saveWorkflowName.trim()) {
+      toast({
+        title: "Fehler",
+        description: "Bitte geben Sie einen Namen für die Liste ein",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const tenantId = saveDialogType === 'global' ? 'template' : localStorage.getItem('selectedProject') || 'default';
+      
+      // Copy all steps from current workflow to the new workflow
+      const stepsToSave = mainSteps.map((step, index) => ({
+        step_id: `${saveWorkflowName.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${step.id}_${Date.now()}`,
+        title: step.title,
+        description: step.description,
+        communication: step.communication,
+        required: step.required,
+        parent_step_id: step.parentStepId,
+        step_type: step.stepType,
+        condition_label: step.conditionLabel,
+        next_step_conditions: step.nextStepConditions,
+        action_buttons: JSON.parse(JSON.stringify(step.actionButtons)) || [],
+        position_x: step.positionX,
+        position_y: step.positionY,
+        is_start_step: step.isStartStep,
+        is_end_step: step.isEndStep,
+        category: step.category,
+        workflow_name: saveWorkflowName,
+        tenant_id: tenantId,
+        status_background_color: step.statusBackgroundColor,
+        status_icon: step.statusIcon,
+        is_topic_step: step.isTopicStep || false,
+        is_service_plus_step: step.isServicePlusStep || false,
+        parent_topic_id: step.parentTopicId,
+        image_url: step.imageUrl,
+        sort_order: index + 1
+      }));
+
+      const { error } = await supabase
+        .from('call_steps')
+        .insert(stepsToSave);
+
+      if (error) throw error;
+
+      toast({
+        title: "Erfolg",
+        description: saveDialogType === 'global' 
+          ? `Liste "${saveWorkflowName}" wurde projektübergreifend gespeichert`
+          : `Liste "${saveWorkflowName}" wurde im Projekt gespeichert`,
+      });
+
+      setShowSaveDialog(false);
+      setSaveWorkflowName("");
+    } catch (error) {
+      console.error('Error saving workflow:', error);
+      toast({
+        title: "Fehler",
+        description: "Liste konnte nicht gespeichert werden",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
 
@@ -408,6 +493,7 @@ export default function EditorMode({
   }
 
   return (
+    <>
     <Tabs defaultValue="steps" className="w-full">
       <TabsList className="grid w-full grid-cols-2">
         <TabsTrigger value="steps">Schritte</TabsTrigger>
@@ -491,6 +577,26 @@ export default function EditorMode({
           </div>
         </div>
 
+        {/* Workflow Save Options */}
+        <div className="flex items-center justify-end space-x-2 px-2">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={handleSaveWorkflowLocal}
+            className="text-xs"
+          >
+            💾 Liste im Projekt speichern
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={handleSaveWorkflowGlobal}
+            className="text-xs"
+          >
+            🌐 Liste projektübergreifend speichern
+          </Button>
+        </div>
+
         {/* Drag & Drop List View */}
         <div className="space-y-2">
           {mainSteps.length === 0 ? (
@@ -537,5 +643,40 @@ export default function EditorMode({
         <ObjectionManager />
       </TabsContent>
     </Tabs>
+
+    {/* Save Workflow Dialog */}
+    <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>
+            {saveDialogType === 'global' 
+              ? 'Liste projektübergreifend speichern' 
+              : 'Liste im Projekt speichern'}
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            {saveDialogType === 'global'
+              ? 'Diese Liste wird als Template für alle Projekte verfügbar sein.'
+              : 'Diese Liste wird nur in diesem Projekt verfügbar sein.'}
+          </p>
+          <Input
+            placeholder="Name der Liste..."
+            value={saveWorkflowName}
+            onChange={(e) => setSaveWorkflowName(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleConfirmSaveWorkflow()}
+          />
+          <div className="flex justify-end space-x-2">
+            <Button variant="outline" onClick={() => setShowSaveDialog(false)}>
+              Abbrechen
+            </Button>
+            <Button onClick={handleConfirmSaveWorkflow}>
+              Speichern
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
