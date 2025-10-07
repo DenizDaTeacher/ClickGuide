@@ -412,7 +412,10 @@ export default function AgentMode({
                     <FileText className="w-4 h-4 mr-2" />
                     Kommunikationsvorlage:
                   </h3>
-                  <p className="italic text-foreground">{currentDisplayStep.communication}</p>
+                  <div 
+                    className="italic text-foreground prose prose-sm max-w-none"
+                    dangerouslySetInnerHTML={{ __html: currentDisplayStep.communication }}
+                  />
                 </div>
 
                 {/* Topic Selection for Topic Steps */}

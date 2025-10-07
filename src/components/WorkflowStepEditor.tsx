@@ -13,7 +13,8 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CallStep, NextStepCondition, ActionButton, ButtonTemplate } from "@/hooks/useCallSteps";
 import { StepTopicManager } from "@/components/StepTopicManager";
-import { 
+import { RichTextEditor } from "@/components/RichTextEditor";
+import {
   Plus, Trash2, Settings, MousePointer, Save, ChevronDown, ChevronRight, 
   Palette, Star, Copy, Edit, Check, X, AlertTriangle, Info, Phone, 
   PhoneCall, PhoneOff, User, Clock, ArrowRight, ArrowLeft, Home,
@@ -619,12 +620,10 @@ export function WorkflowStepEditor({
 
           <div className="space-y-2">
             <Label htmlFor="communication">Kommunikation</Label>
-            <Textarea
-              id="communication"
+            <RichTextEditor
               value={formData.communication}
-              onChange={(e) => handleInputChange('communication', e.target.value)}
+              onChange={(value) => handleInputChange('communication', value)}
               placeholder="Was soll der Agent sagen?"
-              rows={4}
             />
           </div>
 

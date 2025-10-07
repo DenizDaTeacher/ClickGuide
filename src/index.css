@@ -143,3 +143,62 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 }
+
+@layer utilities {
+  /* Prose styles for rich text content */
+  .prose {
+    color: hsl(var(--foreground));
+  }
+  
+  .prose p {
+    margin: 0.5rem 0;
+  }
+  
+  .prose strong {
+    font-weight: 600;
+    color: hsl(var(--foreground));
+  }
+  
+  .prose em {
+    font-style: italic;
+  }
+  
+  .prose ul, .prose ol {
+    margin: 0.5rem 0;
+    padding-left: 1.5rem;
+  }
+  
+  .prose ul {
+    list-style-type: disc;
+  }
+  
+  .prose ol {
+    list-style-type: decimal;
+  }
+  
+  .prose li {
+    margin: 0.25rem 0;
+  }
+  
+  .prose table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 1rem 0;
+    border: 1px solid hsl(var(--border));
+  }
+  
+  .prose th, .prose td {
+    border: 1px solid hsl(var(--border));
+    padding: 0.5rem;
+    text-align: left;
+  }
+  
+  .prose th {
+    background-color: hsl(var(--muted));
+    font-weight: 600;
+  }
+  
+  .prose tr:nth-child(even) {
+    background-color: hsl(var(--muted) / 0.3);
+  }
+}
