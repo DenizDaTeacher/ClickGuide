@@ -60,6 +60,7 @@ export interface CallStep {
   isTopicStep?: boolean; // Marks if this step is a topic selection step
   parentTopicId?: string; // For sub-steps belonging to a topic
   isServicePlusStep?: boolean; // Marks if this step should show ServicePlus Coach
+  imageUrl?: string; // URL of uploaded image for the step
 }
 
 export type NextStepCondition = CallStep['nextStepConditions'][0];
@@ -248,7 +249,8 @@ export function useCallSteps() {
           statusBackgroundColor: step.status_background_color || undefined,
           statusIcon: step.status_icon || undefined,
           parentTopicId: step.parent_topic_id || undefined,
-          topicId: step.topic_id || undefined
+          topicId: step.topic_id || undefined,
+          imageUrl: (step as any).image_url || undefined
         }));
         
         // Organize sub-steps under their parent steps
@@ -459,7 +461,8 @@ export function useCallSteps() {
         status_icon: processedStep.statusIcon,
         is_topic_step: processedStep.isTopicStep || false,
         is_service_plus_step: processedStep.isServicePlusStep || false,
-        parent_topic_id: processedStep.parentTopicId
+        parent_topic_id: processedStep.parentTopicId,
+        image_url: processedStep.imageUrl
       };
 
       console.log('💾 Saving step data to database:', {

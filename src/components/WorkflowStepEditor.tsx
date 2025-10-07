@@ -17,9 +17,10 @@ import {
   Plus, Trash2, Settings, MousePointer, Save, ChevronDown, ChevronRight, 
   Palette, Star, Copy, Edit, Check, X, AlertTriangle, Info, Phone, 
   PhoneCall, PhoneOff, User, Clock, ArrowRight, ArrowLeft, Home,
-  Search, Settings2, RefreshCw, Pause, Play, Square, SkipForward
+  Search, Settings2, RefreshCw, Pause, Play, Square, SkipForward, Upload, ImageIcon
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface WorkflowStepEditorProps {
   step?: CallStep;
@@ -111,11 +112,14 @@ export function WorkflowStepEditor({
       workflowName: 'Gesprächsschritte',
       actionButtons: [],
       statusBackgroundColor: '',
-      statusIcon: ''
+      statusIcon: '',
+      imageUrl: ''
     };
     
     return ensureDefaultButton(initialData);
   });
+
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   const [showButtonDialog, setShowButtonDialog] = useState(false);
   const [editingButtonIndex, setEditingButtonIndex] = useState<number | null>(null);
@@ -446,6 +450,76 @@ export function WorkflowStepEditor({
     setFormData(prev => ({ ...prev, subSteps: updatedSubSteps }));
   };
 
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Fehler",
+        description: "Bitte wählen Sie eine Bilddatei aus",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "Fehler",
+        description: "Die Datei ist zu groß. Maximum: 5MB",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setUploadingImage(true);
+
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${formData.id}-${Date.now()}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      const { error: uploadError, data } = await supabase.storage
+        .from('step-images')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: true
+        });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('step-images')
+        .getPublicUrl(filePath);
+
+      handleInputChange('imageUrl', publicUrl);
+
+      toast({
+        title: "Erfolg",
+        description: "Bild wurde erfolgreich hochgeladen"
+      });
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast({
+        title: "Fehler",
+        description: "Bild konnte nicht hochgeladen werden",
+        variant: "destructive"
+      });
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    handleInputChange('imageUrl', '');
+    toast({
+      title: "Erfolg",
+      description: "Bild wurde entfernt"
+    });
+  };
+
   return (
     <div className="space-y-6">
       <Card>
@@ -486,6 +560,61 @@ export function WorkflowStepEditor({
               placeholder="Beschreibung des Schritts"
               rows={3}
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="stepImage">Bild hochladen</Label>
+            <div className="flex flex-col gap-3">
+              {formData.imageUrl && (
+                <div className="relative inline-block">
+                  <img 
+                    src={formData.imageUrl} 
+                    alt="Schritt-Bild" 
+                    className="max-w-xs rounded-lg border"
+                  />
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="sm"
+                    className="absolute top-2 right-2"
+                    onClick={handleRemoveImage}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
+              <div className="flex items-center gap-2">
+                <Input
+                  id="stepImage"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  disabled={uploadingImage}
+                  className="hidden"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => document.getElementById('stepImage')?.click()}
+                  disabled={uploadingImage}
+                >
+                  {uploadingImage ? (
+                    <>Wird hochgeladen...</>
+                  ) : (
+                    <>
+                      <Upload className="h-4 w-4 mr-2" />
+                      {formData.imageUrl ? 'Bild ändern' : 'Bild auswählen'}
+                    </>
+                  )}
+                </Button>
+                {formData.imageUrl && (
+                  <span className="text-sm text-muted-foreground">
+                    <ImageIcon className="h-4 w-4 inline mr-1" />
+                    Bild hochgeladen
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
 
           <div className="space-y-2">
