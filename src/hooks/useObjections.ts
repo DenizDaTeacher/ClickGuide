@@ -13,19 +13,21 @@ export const useObjections = () => {
     if (!tenantId) return;
     
     try {
+      // Load objections from current tenant AND from 'default' (global templates)
       const { data: objectionsData, error: objectionsError } = await supabase
         .from('objections')
         .select('*')
-        .eq('tenant_id', tenantId)
+        .in('tenant_id', [tenantId, 'default'])
         .eq('is_active', true)
         .order('priority', { ascending: false });
 
       if (objectionsError) throw objectionsError;
 
+      // Load responses from current tenant AND from 'default'
       const { data: responsesData, error: responsesError } = await supabase
         .from('responses')
         .select('*')
-        .eq('tenant_id', tenantId)
+        .in('tenant_id', [tenantId, 'default'])
         .order('sort_order', { ascending: true });
 
       if (responsesError) throw responsesError;
