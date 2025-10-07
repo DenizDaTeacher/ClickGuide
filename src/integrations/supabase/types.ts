@@ -71,6 +71,7 @@ export type Database = {
           created_at: string
           description: string
           id: string
+          image_url: string | null
           is_end_step: boolean | null
           is_service_plus_step: boolean | null
           is_start_step: boolean | null
@@ -100,6 +101,7 @@ export type Database = {
           created_at?: string
           description: string
           id?: string
+          image_url?: string | null
           is_end_step?: boolean | null
           is_service_plus_step?: boolean | null
           is_start_step?: boolean | null
@@ -129,6 +131,7 @@ export type Database = {
           created_at?: string
           description?: string
           id?: string
+          image_url?: string | null
           is_end_step?: boolean | null
           is_service_plus_step?: boolean | null
           is_start_step?: boolean | null
