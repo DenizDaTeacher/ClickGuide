@@ -489,38 +489,41 @@ export default function AgentMode({
                         </Button>)}
                     </div>
                   </div> : <div className="flex flex-wrap gap-3">
-                    {/* Render action buttons if available */}
-                    {currentDisplayStep.actionButtons && currentDisplayStep.actionButtons.length > 0 ? (
-                      currentDisplayStep.actionButtons.map(button => (
-                        <Button
-                          key={button.id}
-                          onClick={() => handleActionButton(button)}
-                          variant={button.variant || 'default'}
-                          disabled={!button.enabled}
-                          className={button.actionType === 'complete' ? 'bg-gradient-primary' : ''}
-                        >
-                          {button.icon && <span className="mr-2">{button.icon}</span>}
-                          {button.label}
-                        </Button>
-                      ))
-                    ) : (
-                      <>
-                        {/* Show default completion button if: not a topic step OR topic is selected OR no topics defined for this step */}
-                        {(!currentStep?.isTopicStep || selectedTopic || topics.filter(topic => topic.step_id === currentStep?.id).length === 0) && <Button onClick={() => handleStepComplete()} className="bg-gradient-primary">
-                            <CheckCircle className="w-4 h-4 mr-2" />
-                            Schritt abgeschlossen
-                          </Button>}
-                        
-                        {/* Legacy decision button for backward compatibility */}
-                        {currentStep.stepType === 'decision' && <Button variant="destructive" onClick={() => {
-                    handleAuthenticationFailure();
-                    setStatusMessages(prev => [...prev, "Problem bei der Authentifizierung aufgetreten"]);
-                  }}>
-                            <AlertCircle className="w-4 h-4 mr-2" />
-                            Problem aufgetreten
-                          </Button>}
-                      </>
-                    )}
+                    {/* Check if there's a complete button in action buttons */}
+                    {(() => {
+                      const hasCompleteButton = currentDisplayStep.actionButtons?.some(
+                        button => button.actionType === 'complete'
+                      );
+                      const showDefaultComplete = !currentStep?.isTopicStep || 
+                                                  selectedTopic || 
+                                                  topics.filter(topic => topic.step_id === currentStep?.id).length === 0;
+
+                      return (
+                        <>
+                          {/* Render custom action buttons */}
+                          {currentDisplayStep.actionButtons?.map(button => (
+                            <Button
+                              key={button.id}
+                              onClick={() => handleActionButton(button)}
+                              variant={button.variant || 'default'}
+                              disabled={!button.enabled}
+                              className={button.actionType === 'complete' ? 'bg-gradient-primary' : ''}
+                            >
+                              {button.icon && <span className="mr-2">{button.icon}</span>}
+                              {button.label}
+                            </Button>
+                          ))}
+                          
+                          {/* Show default completion button if no complete button exists and conditions met */}
+                          {!hasCompleteButton && showDefaultComplete && (
+                            <Button onClick={() => handleStepComplete()} className="bg-gradient-primary">
+                              <CheckCircle className="w-4 h-4 mr-2" />
+                              Schritt abgeschlossen
+                            </Button>
+                          )}
+                        </>
+                      );
+                    })()}
                   </div>}
               </CardContent>
             </Card>
