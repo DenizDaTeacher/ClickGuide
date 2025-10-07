@@ -489,41 +489,26 @@ export default function AgentMode({
                         </Button>)}
                     </div>
                   </div> : <div className="flex flex-wrap gap-3">
-                    {/* Check if there's a complete button in action buttons */}
-                    {(() => {
-                      const hasCompleteButton = currentDisplayStep.actionButtons?.some(
-                        button => button.actionType === 'complete'
-                      );
-                      const showDefaultComplete = !currentStep?.isTopicStep || 
-                                                  selectedTopic || 
-                                                  topics.filter(topic => topic.step_id === currentStep?.id).length === 0;
-
-                      return (
-                        <>
-                          {/* Render custom action buttons */}
-                          {currentDisplayStep.actionButtons?.map(button => (
-                            <Button
-                              key={button.id}
-                              onClick={() => handleActionButton(button)}
-                              variant={button.variant || 'default'}
-                              disabled={!button.enabled}
-                              className={button.actionType === 'complete' ? 'bg-gradient-primary' : ''}
-                            >
-                              {button.icon && <span className="mr-2">{button.icon}</span>}
-                              {button.label}
-                            </Button>
-                          ))}
-                          
-                          {/* Show default completion button if no complete button exists and conditions met */}
-                          {!hasCompleteButton && showDefaultComplete && (
-                            <Button onClick={() => handleStepComplete()} className="bg-gradient-primary">
-                              <CheckCircle className="w-4 h-4 mr-2" />
-                              Schritt abgeschlossen
-                            </Button>
-                          )}
-                        </>
-                      );
-                    })()}
+                    {/* Always show default completion button first */}
+                    {(!currentStep?.isTopicStep || selectedTopic || topics.filter(topic => topic.step_id === currentStep?.id).length === 0) && (
+                      <Button onClick={() => handleStepComplete()} className="bg-gradient-primary">
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                        Schritt abgeschlossen
+                      </Button>
+                    )}
+                    
+                    {/* Render other action buttons (non-complete) */}
+                    {currentDisplayStep.actionButtons?.filter(button => button.actionType !== 'complete').map(button => (
+                      <Button
+                        key={button.id}
+                        onClick={() => handleActionButton(button)}
+                        variant={button.variant || 'default'}
+                        disabled={!button.enabled}
+                      >
+                        {button.icon && <span className="mr-2">{button.icon}</span>}
+                        {button.label}
+                      </Button>
+                    ))}
                   </div>}
               </CardContent>
             </Card>
@@ -608,11 +593,21 @@ export default function AgentMode({
                 const isCompleted = stepHistory.some(completedStep => completedStep.id === step.id);
                 const isCurrent = currentStep && currentStep.id === step.id;
                 const isPending = !isCompleted && !isCurrent;
-                return <div key={step.id} className={`flex items-center space-x-3 p-2 rounded-lg border ${isCompleted ? 'bg-success/5 border-success/20' : isCurrent ? 'bg-primary/10 border-primary/20' : 'bg-muted/30 border-muted/40'}`}>
+                return <button 
+                          key={step.id} 
+                          onClick={() => {
+                            setCurrentStep(step);
+                            setCurrentSubStepIndex(null);
+                            setSelectedTopic(null);
+                            setTopicSubSteps([]);
+                            setStatusMessages([]);
+                          }}
+                          className={`w-full flex items-center space-x-3 p-2 rounded-lg border transition-all hover:bg-muted/50 cursor-pointer ${isCompleted ? 'bg-success/5 border-success/20' : isCurrent ? 'bg-primary/10 border-primary/20' : 'bg-muted/30 border-muted/40'}`}
+                        >
                           <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${isCompleted ? 'bg-success text-success-foreground' : isCurrent ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
                             {isCompleted ? <CheckCircle className="w-4 h-4" /> : isCurrent ? <span>▶</span> : <span>{index + 1}</span>}
                           </div>
-                          <div className="flex-1">
+                          <div className="flex-1 text-left">
                             <p className={`text-sm font-medium ${isCompleted ? 'text-success' : isCurrent ? 'text-primary' : 'text-muted-foreground'}`}>
                               {step.title}
                             </p>
@@ -628,7 +623,7 @@ export default function AgentMode({
                                 </Badge>}
                             </div>
                           </div>
-                        </div>;
+                        </button>;
               })}
                 </div>
               </CardContent>
