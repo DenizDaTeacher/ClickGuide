@@ -439,14 +439,14 @@ export default function AgentMode({
                       <Info className="w-4 h-4 mr-2" />
                       Wählen Sie ein Anliegen:
                     </h3>
-                    {topics.filter(topic => topic.step_id === currentStep.id).length === 0 ? (
+                    {topics.filter(topic => topic.step_id === currentStep.uuid).length === 0 ? (
                       <div className="p-4 border border-dashed rounded-lg text-center text-muted-foreground">
                         <p className="text-sm">Keine Anliegen für diesen Schritt definiert.</p>
                         <p className="text-xs mt-1">Fügen Sie im Editor-Modus Anliegen hinzu.</p>
                       </div>
                     ) : (
                     <div className="space-y-2">
-                      {topics.filter(topic => topic.step_id === currentStep.id).map(topic => {
+                      {topics.filter(topic => topic.step_id === currentStep.uuid).map(topic => {
                   const isExpanded = expandedTopics.has(topic.id);
                   const subSteps = isExpanded ? topicSubSteps : [];
                   return <div key={topic.id} className="border rounded-lg overflow-hidden border-border/50" style={{

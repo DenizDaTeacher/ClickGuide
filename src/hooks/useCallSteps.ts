@@ -32,6 +32,7 @@ export interface ButtonTemplate {
 
 export interface CallStep {
   id: string;
+  uuid?: string; // UUID from database (call_steps.id) - used for topic references
   title: string;
   description: string;
   communication: string;
@@ -271,6 +272,7 @@ export function useCallSteps() {
       if (data) {
         const formattedSteps: CallStep[] = data.map(step => ({
           id: step.step_id,
+          uuid: step.id, // Store the UUID for topic references
           title: step.title,
           description: step.description,
           communication: step.communication,
