@@ -439,14 +439,7 @@ export default function AgentMode({
                       <Info className="w-4 h-4 mr-2" />
                       Wählen Sie ein Anliegen:
                     </h3>
-                    {(() => {
-                      console.log('🔍 Topic Debug:', {
-                        currentStepId: currentStep.id,
-                        allTopics: topics,
-                        filteredTopics: topics.filter(topic => topic.step_id === currentStep.id)
-                      });
-                      return topics.filter(topic => topic.step_id === currentStep.id).length === 0;
-                    })() ? (
+                    {topics.filter(topic => topic.step_id === currentStep.id).length === 0 ? (
                       <div className="p-4 border border-dashed rounded-lg text-center text-muted-foreground">
                         <p className="text-sm">Keine Anliegen für diesen Schritt definiert.</p>
                         <p className="text-xs mt-1">Fügen Sie im Editor-Modus Anliegen hinzu.</p>
