@@ -831,6 +831,33 @@ export type Database = {
           },
         ]
       }
+      workflow_master: {
+        Row: {
+          created_at: string
+          id: string
+          master_tenant_id: string
+          sync_enabled: boolean
+          updated_at: string
+          workflow_name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          master_tenant_id: string
+          sync_enabled?: boolean
+          updated_at?: string
+          workflow_name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          master_tenant_id?: string
+          sync_enabled?: boolean
+          updated_at?: string
+          workflow_name?: string
+        }
+        Relationships: []
+      }
       workflow_templates: {
         Row: {
           created_at: string | null
