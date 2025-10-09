@@ -6,6 +6,7 @@ import { TableCell } from '@tiptap/extension-table-cell';
 import { TableHeader } from '@tiptap/extension-table-header';
 import { TextStyle } from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
+import Image from '@tiptap/extension-image';
 import { Button } from './ui/button';
 import { 
   Bold, 
@@ -14,7 +15,8 @@ import {
   Palette,
   List,
   ListOrdered,
-  Smile
+  Smile,
+  ImageIcon
 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 
@@ -71,12 +73,26 @@ export const RichTextEditor = ({ value, onChange, placeholder }: RichTextEditorP
       TableCell,
       TextStyle,
       Color,
+      Image.configure({
+        inline: true,
+        allowBase64: true,
+        HTMLAttributes: {
+          class: 'max-w-full h-auto cursor-pointer',
+        },
+      }),
     ],
     content: value || '',
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML());
     },
   });
+
+  const addImage = () => {
+    const url = window.prompt('Bild-URL eingeben:');
+    if (url && editor) {
+      editor.chain().focus().setImage({ src: url }).run();
+    }
+  };
 
   if (!editor) {
     return null;
@@ -183,6 +199,15 @@ export const RichTextEditor = ({ value, onChange, placeholder }: RichTextEditorP
           type="button"
           variant="ghost"
           size="sm"
+          onClick={addImage}
+        >
+          <ImageIcon className="w-4 h-4" />
+        </Button>
+
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
           onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
         >
           <TableIcon className="w-4 h-4" />
@@ -277,6 +302,15 @@ export const RichTextEditor = ({ value, onChange, placeholder }: RichTextEditorP
         }
         .ProseMirror p {
           margin: 0.5rem 0;
+        }
+        .ProseMirror img {
+          max-width: 100%;
+          height: auto;
+          cursor: pointer;
+          border-radius: 0.375rem;
+        }
+        .ProseMirror img.ProseMirror-selectednode {
+          outline: 3px solid hsl(var(--primary));
         }
       `}</style>
     </div>
