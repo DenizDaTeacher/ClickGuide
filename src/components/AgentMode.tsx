@@ -428,10 +428,18 @@ export default function AgentMode({
                     Kommunikationsvorlage:
                   </h3>
                   <div 
-                    className="italic text-foreground prose prose-sm max-w-none"
+                    className="italic text-foreground prose prose-sm max-w-none communication-template"
                     dangerouslySetInnerHTML={{ __html: currentDisplayStep.communication }}
                   />
                 </div>
+                
+                <style>{`
+                  .communication-template img {
+                    max-width: 200px !important;
+                    height: auto !important;
+                    display: inline-block;
+                  }
+                `}</style>
 
                 {/* Topic Selection for Topic Steps */}
                 {currentStep?.isTopicStep && <div className="space-y-3">
