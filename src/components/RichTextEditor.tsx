@@ -13,7 +13,8 @@ import {
   Table as TableIcon, 
   Palette,
   List,
-  ListOrdered
+  ListOrdered,
+  Smile
 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 
@@ -28,6 +29,25 @@ const colors = [
   '#65A30D', '#16A34A', '#059669', '#0891B2', '#0284C7',
   '#2563EB', '#4F46E5', '#7C3AED', '#9333EA', '#C026D3',
   '#DB2777', '#E11D48'
+];
+
+const emojis = [
+  '😀', '😃', '😄', '😁', '😅', '😂', '🤣', '😊', '😇', '🙂',
+  '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚', '😋',
+  '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🥳', '🤩',
+  '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '😣', '😖', '😫',
+  '😩', '🥺', '😢', '😭', '😤', '😠', '😡', '🤬', '🤯', '😳',
+  '🥵', '🥶', '😱', '😨', '😰', '😥', '😓', '🤗', '🤔', '🤭',
+  '🤫', '🤥', '😶', '😐', '😑', '😬', '🙄', '😯', '😦', '😧',
+  '😮', '😲', '🥱', '😴', '🤤', '😪', '😵', '🤐', '🥴', '🤢',
+  '👍', '👎', '👊', '✊', '🤛', '🤜', '👏', '🙌', '👐', '🤝',
+  '🙏', '✍️', '💪', '🦾', '🦿', '🦵', '🦶', '👂', '🦻', '👃',
+  '❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔',
+  '❣️', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '💟', '☮️',
+  '✌️', '🤞', '🤟', '🤘', '🤙', '👌', '🤏', '👈', '👉', '👆',
+  '⭐', '✨', '🌟', '💫', '⚡', '🔥', '💥', '✅', '❌', '⚠️',
+  '📞', '📱', '💻', '⌨️', '🖥️', '🖨️', '🖱️', '📧', '📨', '📩',
+  '🎉', '🎊', '🎈', '🎁', '🏆', '🥇', '🥈', '🥉', '🎯', '🎮'
 ];
 
 export const RichTextEditor = ({ value, onChange, placeholder }: RichTextEditorProps) => {
@@ -95,6 +115,33 @@ export const RichTextEditor = ({ value, onChange, placeholder }: RichTextEditorP
         >
           <ListOrdered className="w-4 h-4" />
         </Button>
+
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+            >
+              <Smile className="w-4 h-4" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-80 max-h-64 overflow-y-auto">
+            <div className="grid grid-cols-8 gap-1">
+              {emojis.map((emoji, index) => (
+                <button
+                  key={index}
+                  type="button"
+                  className="w-8 h-8 rounded hover:bg-accent transition-colors text-xl flex items-center justify-center"
+                  onClick={() => editor.chain().focus().insertContent(emoji).run()}
+                  title={emoji}
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
+          </PopoverContent>
+        </Popover>
 
         <Popover>
           <PopoverTrigger asChild>
