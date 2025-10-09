@@ -51,7 +51,7 @@ export const SalesCoach = () => {
           
           {/* Quick select buttons */}
           <div className="flex flex-wrap gap-2">
-            {objections.slice(0, 5).map((objection) => (
+            {objections.map((objection) => (
               <Button
                 key={objection.id}
                 variant="outline"
