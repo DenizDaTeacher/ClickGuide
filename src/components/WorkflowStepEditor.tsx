@@ -1165,11 +1165,10 @@ export function WorkflowStepEditor({
 
               <div className="space-y-2">
                 <Label>Kommunikation</Label>
-                <Textarea
+                <RichTextEditor
                   value={subStepFormData.communication || ''}
-                  onChange={(e) => setSubStepFormData(prev => ({ ...prev, communication: e.target.value }))}
+                  onChange={(value) => setSubStepFormData(prev => ({ ...prev, communication: value }))}
                   placeholder="Was soll bei diesem Unterschritt gesagt werden?"
-                  rows={3}
                 />
               </div>
 

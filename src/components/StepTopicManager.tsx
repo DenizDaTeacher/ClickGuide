@@ -12,6 +12,7 @@ import { Topic } from '@/types/topics';
 import { CallStep } from '@/hooks/useCallSteps';
 import { useToast } from '@/hooks/use-toast';
 import { useTopics } from '@/hooks/useTopics';
+import { RichTextEditor } from '@/components/RichTextEditor';
 
 interface StepTopicManagerProps {
   stepId: string;
@@ -342,11 +343,10 @@ export function StepTopicManager({
             </div>
             <div>
               <Label>Kommunikationsvorlage</Label>
-              <Textarea
+              <RichTextEditor
                 value={subStepFormData.communication || ''}
-                onChange={e => setSubStepFormData(prev => ({ ...prev, communication: e.target.value }))}
+                onChange={(value) => setSubStepFormData(prev => ({ ...prev, communication: value }))}
                 placeholder="Was soll der Agent sagen?"
-                rows={3}
               />
             </div>
             <Separator />
