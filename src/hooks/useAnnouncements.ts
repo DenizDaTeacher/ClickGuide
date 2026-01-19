@@ -8,9 +8,16 @@ export interface Announcement {
   title: string | null;
   content: string;
   image_url: string | null;
+  image_width: number | null;
+  image_position: string | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
+}
+
+export interface ImageSettings {
+  width: number | null;
+  position: 'left' | 'center' | 'right';
 }
 
 export function useAnnouncements() {
@@ -41,7 +48,12 @@ export function useAnnouncements() {
     }
   }, [tenantId]);
 
-  const saveAnnouncement = async (content: string, title?: string, imageUrl?: string) => {
+  const saveAnnouncement = async (
+    content: string, 
+    title?: string, 
+    imageUrl?: string,
+    imageSettings?: ImageSettings
+  ) => {
     try {
       if (announcement) {
         // Update existing announcement
@@ -51,6 +63,8 @@ export function useAnnouncements() {
             content,
             title: title || null,
             image_url: imageUrl || null,
+            image_width: imageSettings?.width || null,
+            image_position: imageSettings?.position || 'center',
             updated_at: new Date().toISOString()
           })
           .eq('id', announcement.id);
@@ -64,7 +78,9 @@ export function useAnnouncements() {
             tenant_id: tenantId,
             content,
             title: title || null,
-            image_url: imageUrl || null
+            image_url: imageUrl || null,
+            image_width: imageSettings?.width || null,
+            image_position: imageSettings?.position || 'center'
           });
 
         if (error) throw error;
