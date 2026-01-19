@@ -50,6 +50,39 @@ export type Database = {
         }
         Relationships: []
       }
+      announcements: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          image_url: string | null
+          is_active: boolean
+          tenant_id: string
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          tenant_id?: string
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          tenant_id?: string
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       button_templates: {
         Row: {
           action_type: string

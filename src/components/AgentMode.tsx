@@ -12,6 +12,7 @@ import { useTopics } from "@/hooks/useTopics";
 import { useCallAnalytics } from "@/hooks/useCallAnalytics";
 import { supabase } from "@/integrations/supabase/client";
 import { useTenant } from "@/hooks/useTenant";
+import { NewsBoard } from "./NewsBoard";
 interface AgentModeProps {
   steps: CallStep[];
   onStepsUpdate: (steps: CallStep[]) => void;
@@ -350,6 +351,9 @@ export default function AgentMode({
   };
   const canProceed = completedRequiredSteps === requiredSteps.length && !authenticationFailed;
   return <div className="space-y-6">
+      {/* News Board - Show when call is not active */}
+      {!callActive && <NewsBoard isEditorMode={false} />}
+
       {/* Call Status */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
