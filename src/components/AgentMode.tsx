@@ -10,9 +10,12 @@ import { SalesCoach } from "./SalesCoach";
 import { Topic } from "@/types/topics";
 import { useTopics } from "@/hooks/useTopics";
 import { useCallAnalytics } from "@/hooks/useCallAnalytics";
+import { useCallFeedback } from "@/hooks/useCallFeedback";
 import { supabase } from "@/integrations/supabase/client";
 import { useTenant } from "@/hooks/useTenant";
 import { NewsBoard } from "./NewsBoard";
+import CallFeedbackForm from "./CallFeedbackForm";
+
 interface AgentModeProps {
   steps: CallStep[];
   onStepsUpdate: (steps: CallStep[]) => void;
@@ -30,7 +33,16 @@ export default function AgentMode({
     topics
   } = useTopics();
   const { startCallSession, trackStepCompletion, endCallSession, currentSession } = useCallAnalytics(currentWorkflow, steps);
+  const { settings: feedbackSettings } = useCallFeedback();
   const [callActive, setCallActive] = useState(false);
+  const [showFeedbackForm, setShowFeedbackForm] = useState(false);
+  const [lastCallData, setLastCallData] = useState<{
+    sessionId: string;
+    analyticsId?: string;
+    duration?: number;
+    stepsCompleted: number;
+    stepsTotal: number;
+  } | null>(null);
   const [currentStep, setCurrentStep] = useState<CallStep | null>(null);
   const [stepHistory, setStepHistory] = useState<CallStep[]>([]);
   const [authenticationFailed, setAuthenticationFailed] = useState(false);
@@ -331,7 +343,24 @@ export default function AgentMode({
     setAuthenticationFailed(false);
     setStatusMessages([]);
   };
-  const endCall = () => {
+  const endCall = (showFeedback = true) => {
+    // Calculate call duration
+    const duration = currentSession?.startedAt 
+      ? Math.floor((Date.now() - currentSession.startedAt.getTime()) / 1000)
+      : undefined;
+    
+    // Store call data for feedback
+    if (showFeedback && feedbackSettings) {
+      setLastCallData({
+        sessionId: currentSession?.sessionId || `session-${Date.now()}`,
+        analyticsId: currentSession?.id,
+        duration,
+        stepsCompleted: completedSteps,
+        stepsTotal: totalSteps,
+      });
+      setShowFeedbackForm(true);
+    }
+    
     // End analytics tracking
     if (currentSession) {
       const wasCompleted = currentStep?.isEndStep || false;
@@ -349,10 +378,39 @@ export default function AgentMode({
     setAuthenticationFailed(false);
     setStatusMessages([]);
   };
+
+  const handleFeedbackComplete = () => {
+    setShowFeedbackForm(false);
+    setLastCallData(null);
+  };
+
+  const handleFeedbackSkip = () => {
+    setShowFeedbackForm(false);
+    setLastCallData(null);
+  };
   const canProceed = completedRequiredSteps === requiredSteps.length && !authenticationFailed;
+
+  // Show feedback form after call ends
+  if (showFeedbackForm && lastCallData) {
+    return (
+      <div className="space-y-6 py-8">
+        <CallFeedbackForm
+          workflowName={currentWorkflow}
+          sessionId={lastCallData.sessionId}
+          callAnalyticsId={lastCallData.analyticsId}
+          callDuration={lastCallData.duration}
+          stepsCompleted={lastCallData.stepsCompleted}
+          stepsTotal={lastCallData.stepsTotal}
+          onComplete={handleFeedbackComplete}
+          onSkip={!feedbackSettings?.feedbackRequired ? handleFeedbackSkip : undefined}
+        />
+      </div>
+    );
+  }
+
   return <div className="space-y-6">
       {/* News Board - Show when call is not active */}
-      {!callActive && <NewsBoard isEditorMode={false} />}
+      {!callActive && !showFeedbackForm && <NewsBoard isEditorMode={false} />}
 
       {/* Call Status */}
       <div className="flex items-center justify-between">
@@ -364,7 +422,7 @@ export default function AgentMode({
         </div>
         {!callActive ? <Button onClick={startCall} className="bg-gradient-primary">
             Gespräch starten
-          </Button> : <Button onClick={endCall} variant="destructive">
+          </Button> : <Button onClick={() => endCall()} variant="destructive">
             Gespräch beenden
           </Button>}
       </div>
@@ -683,7 +741,7 @@ export default function AgentMode({
             <p className="text-muted-foreground mb-6">
               Alle konfigurierten Schritte wurden durchlaufen
             </p>
-            <Button onClick={endCall} size="lg" variant="outline">
+            <Button onClick={() => endCall()} size="lg" variant="outline">
               Gespräch beenden
             </Button>
           </CardContent>
