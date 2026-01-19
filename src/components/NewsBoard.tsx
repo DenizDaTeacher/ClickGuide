@@ -1,14 +1,186 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Megaphone, Edit, Save, X, Trash2, Image as ImageIcon } from 'lucide-react';
-import { useAnnouncements } from '@/hooks/useAnnouncements';
+import { Megaphone, Edit, Save, X, Trash2, Image as ImageIcon, AlignLeft, AlignCenter, AlignRight } from 'lucide-react';
+import { useAnnouncements, ImageSettings } from '@/hooks/useAnnouncements';
+import { cn } from '@/lib/utils';
 
 interface NewsBoardProps {
   isEditorMode?: boolean;
+}
+
+interface ResizableImageProps {
+  src: string;
+  width: number | null;
+  position: 'left' | 'center' | 'right';
+  onResize: (width: number) => void;
+  onPositionChange: (position: 'left' | 'center' | 'right') => void;
+  isEditing: boolean;
+}
+
+function ResizableImage({ src, width, position, onResize, onPositionChange, isEditing }: ResizableImageProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isResizing, setIsResizing] = useState(false);
+  const [currentWidth, setCurrentWidth] = useState(width || 300);
+  const startXRef = useRef(0);
+  const startWidthRef = useRef(0);
+
+  useEffect(() => {
+    if (width) {
+      setCurrentWidth(width);
+    }
+  }, [width]);
+
+  const handleMouseDown = useCallback((e: React.MouseEvent, corner: 'left' | 'right') => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsResizing(true);
+    startXRef.current = e.clientX;
+    startWidthRef.current = currentWidth;
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      const deltaX = corner === 'right' 
+        ? moveEvent.clientX - startXRef.current 
+        : startXRef.current - moveEvent.clientX;
+      const newWidth = Math.max(100, Math.min(800, startWidthRef.current + deltaX));
+      setCurrentWidth(newWidth);
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+      onResize(currentWidth);
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  }, [currentWidth, onResize]);
+
+  const positionClasses = {
+    left: 'justify-start',
+    center: 'justify-center',
+    right: 'justify-end'
+  };
+
+  if (!isEditing) {
+    return (
+      <div className={cn("flex mb-3", positionClasses[position])}>
+        <div className="rounded-lg overflow-hidden">
+          <img 
+            src={src} 
+            alt="Announcement" 
+            style={{ width: currentWidth ? `${currentWidth}px` : 'auto', maxWidth: '100%' }}
+            className="h-auto object-cover"
+          />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      {/* Position Controls */}
+      <div className="flex items-center gap-2">
+        <span className="text-xs font-medium text-muted-foreground">Position:</span>
+        <div className="flex gap-1">
+          <Button
+            type="button"
+            variant={position === 'left' ? 'default' : 'outline'}
+            size="sm"
+            className="h-7 w-7 p-0"
+            onClick={() => onPositionChange('left')}
+          >
+            <AlignLeft className="w-3 h-3" />
+          </Button>
+          <Button
+            type="button"
+            variant={position === 'center' ? 'default' : 'outline'}
+            size="sm"
+            className="h-7 w-7 p-0"
+            onClick={() => onPositionChange('center')}
+          >
+            <AlignCenter className="w-3 h-3" />
+          </Button>
+          <Button
+            type="button"
+            variant={position === 'right' ? 'default' : 'outline'}
+            size="sm"
+            className="h-7 w-7 p-0"
+            onClick={() => onPositionChange('right')}
+          >
+            <AlignRight className="w-3 h-3" />
+          </Button>
+        </div>
+        <span className="text-xs text-muted-foreground ml-2">
+          Breite: {currentWidth}px
+        </span>
+      </div>
+
+      {/* Resizable Image Container */}
+      <div className={cn("flex", positionClasses[position])}>
+        <div 
+          ref={containerRef}
+          className={cn(
+            "relative rounded-lg overflow-hidden border-2 transition-colors",
+            isResizing ? "border-primary" : "border-transparent hover:border-primary/50"
+          )}
+          style={{ width: `${currentWidth}px` }}
+        >
+          <img 
+            src={src} 
+            alt="Preview" 
+            className="w-full h-auto object-cover pointer-events-none"
+            onError={(e) => {
+              (e.target as HTMLImageElement).style.display = 'none';
+            }}
+          />
+          
+          {/* Resize Handles */}
+          {/* Left Handle */}
+          <div
+            className="absolute left-0 top-0 bottom-0 w-3 cursor-ew-resize bg-primary/20 hover:bg-primary/40 transition-colors flex items-center justify-center"
+            onMouseDown={(e) => handleMouseDown(e, 'left')}
+          >
+            <div className="w-1 h-8 bg-primary/60 rounded-full" />
+          </div>
+          
+          {/* Right Handle */}
+          <div
+            className="absolute right-0 top-0 bottom-0 w-3 cursor-ew-resize bg-primary/20 hover:bg-primary/40 transition-colors flex items-center justify-center"
+            onMouseDown={(e) => handleMouseDown(e, 'right')}
+          >
+            <div className="w-1 h-8 bg-primary/60 rounded-full" />
+          </div>
+
+          {/* Corner Handles */}
+          <div
+            className="absolute left-0 top-0 w-4 h-4 cursor-nwse-resize bg-primary/40 hover:bg-primary/60 transition-colors rounded-br"
+            onMouseDown={(e) => handleMouseDown(e, 'left')}
+          />
+          <div
+            className="absolute right-0 top-0 w-4 h-4 cursor-nesw-resize bg-primary/40 hover:bg-primary/60 transition-colors rounded-bl"
+            onMouseDown={(e) => handleMouseDown(e, 'right')}
+          />
+          <div
+            className="absolute left-0 bottom-0 w-4 h-4 cursor-nesw-resize bg-primary/40 hover:bg-primary/60 transition-colors rounded-tr"
+            onMouseDown={(e) => handleMouseDown(e, 'left')}
+          />
+          <div
+            className="absolute right-0 bottom-0 w-4 h-4 cursor-nwse-resize bg-primary/40 hover:bg-primary/60 transition-colors rounded-tl"
+            onMouseDown={(e) => handleMouseDown(e, 'right')}
+          />
+        </div>
+      </div>
+
+      <p className="text-xs text-muted-foreground">
+        Ziehen Sie an den Ecken oder Seiten, um die Größe anzupassen
+      </p>
+    </div>
+  );
 }
 
 export function NewsBoard({ isEditorMode = false }: NewsBoardProps) {
@@ -17,18 +189,26 @@ export function NewsBoard({ isEditorMode = false }: NewsBoardProps) {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [imageUrl, setImageUrl] = useState('');
+  const [imageWidth, setImageWidth] = useState<number | null>(null);
+  const [imagePosition, setImagePosition] = useState<'left' | 'center' | 'right'>('center');
 
   useEffect(() => {
     if (announcement) {
       setTitle(announcement.title || '');
       setContent(announcement.content || '');
       setImageUrl(announcement.image_url || '');
+      setImageWidth(announcement.image_width || null);
+      setImagePosition((announcement.image_position as 'left' | 'center' | 'right') || 'center');
     }
   }, [announcement]);
 
   const handleSave = async () => {
     if (!content.trim()) return;
-    await saveAnnouncement(content, title, imageUrl);
+    const imageSettings: ImageSettings = {
+      width: imageWidth,
+      position: imagePosition
+    };
+    await saveAnnouncement(content, title, imageUrl, imageSettings);
     setIsEditing(false);
   };
 
@@ -37,10 +217,14 @@ export function NewsBoard({ isEditorMode = false }: NewsBoardProps) {
       setTitle(announcement.title || '');
       setContent(announcement.content || '');
       setImageUrl(announcement.image_url || '');
+      setImageWidth(announcement.image_width || null);
+      setImagePosition((announcement.image_position as 'left' | 'center' | 'right') || 'center');
     } else {
       setTitle('');
       setContent('');
       setImageUrl('');
+      setImageWidth(null);
+      setImagePosition('center');
     }
     setIsEditing(false);
   };
@@ -51,6 +235,8 @@ export function NewsBoard({ isEditorMode = false }: NewsBoardProps) {
       setTitle('');
       setContent('');
       setImageUrl('');
+      setImageWidth(null);
+      setImagePosition('center');
       setIsEditing(false);
     }
   };
@@ -77,6 +263,9 @@ export function NewsBoard({ isEditorMode = false }: NewsBoardProps) {
   if (!isEditorMode) {
     if (!announcement) return null;
 
+    const displayWidth = announcement.image_width || 300;
+    const displayPosition = (announcement.image_position as 'left' | 'center' | 'right') || 'center';
+
     return (
       <Card className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20 border-amber-200 dark:border-amber-800 shadow-lg">
         <CardHeader className="pb-2">
@@ -92,13 +281,14 @@ export function NewsBoard({ isEditorMode = false }: NewsBoardProps) {
         </CardHeader>
         <CardContent className="pt-0">
           {announcement.image_url && (
-            <div className="mb-3 rounded-lg overflow-hidden">
-              <img 
-                src={announcement.image_url} 
-                alt="Announcement" 
-                className="w-full max-h-48 object-cover"
-              />
-            </div>
+            <ResizableImage
+              src={announcement.image_url}
+              width={displayWidth}
+              position={displayPosition}
+              onResize={() => {}}
+              onPositionChange={() => {}}
+              isEditing={false}
+            />
           )}
           <div 
             className="text-sm text-foreground/80 whitespace-pre-wrap"
@@ -205,14 +395,14 @@ export function NewsBoard({ isEditorMode = false }: NewsBoardProps) {
                 className="bg-white dark:bg-background"
               />
               {imageUrl && (
-                <div className="mt-2 rounded-lg overflow-hidden border">
-                  <img 
-                    src={imageUrl} 
-                    alt="Preview" 
-                    className="w-full max-h-32 object-cover"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = 'none';
-                    }}
+                <div className="mt-3">
+                  <ResizableImage
+                    src={imageUrl}
+                    width={imageWidth}
+                    position={imagePosition}
+                    onResize={setImageWidth}
+                    onPositionChange={setImagePosition}
+                    isEditing={true}
                   />
                 </div>
               )}
@@ -226,13 +416,14 @@ export function NewsBoard({ isEditorMode = false }: NewsBoardProps) {
               </h3>
             )}
             {announcement.image_url && (
-              <div className="mb-3 rounded-lg overflow-hidden">
-                <img 
-                  src={announcement.image_url} 
-                  alt="Announcement" 
-                  className="w-full max-h-48 object-cover"
-                />
-              </div>
+              <ResizableImage
+                src={announcement.image_url}
+                width={announcement.image_width || 300}
+                position={(announcement.image_position as 'left' | 'center' | 'right') || 'center'}
+                onResize={() => {}}
+                onPositionChange={() => {}}
+                isEditing={false}
+              />
             )}
             <div 
               className="text-sm text-foreground/80 whitespace-pre-wrap"

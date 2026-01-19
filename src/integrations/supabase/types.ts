@@ -55,7 +55,9 @@ export type Database = {
           content: string
           created_at: string
           id: string
+          image_position: string | null
           image_url: string | null
+          image_width: number | null
           is_active: boolean
           tenant_id: string
           title: string | null
@@ -65,7 +67,9 @@ export type Database = {
           content: string
           created_at?: string
           id?: string
+          image_position?: string | null
           image_url?: string | null
+          image_width?: number | null
           is_active?: boolean
           tenant_id?: string
           title?: string | null
@@ -75,7 +79,9 @@ export type Database = {
           content?: string
           created_at?: string
           id?: string
+          image_position?: string | null
           image_url?: string | null
+          image_width?: number | null
           is_active?: boolean
           tenant_id?: string
           title?: string | null
