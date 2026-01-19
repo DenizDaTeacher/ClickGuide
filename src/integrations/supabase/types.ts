@@ -188,6 +188,53 @@ export type Database = {
         }
         Relationships: []
       }
+      call_feedback: {
+        Row: {
+          call_analytics_id: string | null
+          checklist_responses: Json
+          created_at: string
+          email_sent_at: string | null
+          id: string
+          notes: string | null
+          overall_rating: number | null
+          session_id: string
+          tenant_id: string
+          workflow_name: string
+        }
+        Insert: {
+          call_analytics_id?: string | null
+          checklist_responses?: Json
+          created_at?: string
+          email_sent_at?: string | null
+          id?: string
+          notes?: string | null
+          overall_rating?: number | null
+          session_id: string
+          tenant_id?: string
+          workflow_name: string
+        }
+        Update: {
+          call_analytics_id?: string | null
+          checklist_responses?: Json
+          created_at?: string
+          email_sent_at?: string | null
+          id?: string
+          notes?: string | null
+          overall_rating?: number | null
+          session_id?: string
+          tenant_id?: string
+          workflow_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "call_feedback_call_analytics_id_fkey"
+            columns: ["call_analytics_id"]
+            isOneToOne: false
+            referencedRelation: "call_analytics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       call_steps: {
         Row: {
           action_buttons: Json | null
@@ -351,6 +398,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      feedback_settings: {
+        Row: {
+          checklist_questions: Json
+          created_at: string
+          feedback_required: boolean
+          id: string
+          notification_emails: Json
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          checklist_questions?: Json
+          created_at?: string
+          feedback_required?: boolean
+          id?: string
+          notification_emails?: Json
+          tenant_id?: string
+          updated_at?: string
+        }
+        Update: {
+          checklist_questions?: Json
+          created_at?: string
+          feedback_required?: boolean
+          id?: string
+          notification_emails?: Json
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       game_runs: {
         Row: {
