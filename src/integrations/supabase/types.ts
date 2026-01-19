@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      achievements: {
+        Row: {
+          created_at: string
+          description: string | null
+          icon: string | null
+          id: string
+          is_active: boolean
+          name: string
+          requirement_type: string
+          requirement_value: number
+          xp_reward: number
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          requirement_type: string
+          requirement_value: number
+          xp_reward?: number
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          requirement_type?: string
+          requirement_value?: number
+          xp_reward?: number
+        }
+        Relationships: []
+      }
       button_templates: {
         Row: {
           action_type: string
@@ -224,6 +260,55 @@ export type Database = {
             columns: ["topic_id"]
             isOneToOne: false
             referencedRelation: "topics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      daily_logins: {
+        Row: {
+          created_at: string
+          id: string
+          login_date: string
+          profile_id: string
+          streak_day: number
+          xp_awarded: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          login_date?: string
+          profile_id: string
+          streak_day?: number
+          xp_awarded?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          login_date?: string
+          profile_id?: string
+          streak_day?: number
+          xp_awarded?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_logins_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "alltime_leaderboard"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "daily_logins_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "monthly_leaderboard"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "daily_logins_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -692,6 +777,59 @@ export type Database = {
           },
         ]
       }
+      user_achievements: {
+        Row: {
+          achievement_id: string
+          earned_at: string
+          id: string
+          profile_id: string
+          xp_awarded: number
+        }
+        Insert: {
+          achievement_id: string
+          earned_at?: string
+          id?: string
+          profile_id: string
+          xp_awarded?: number
+        }
+        Update: {
+          achievement_id?: string
+          earned_at?: string
+          id?: string
+          profile_id?: string
+          xp_awarded?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_achievements_achievement_id_fkey"
+            columns: ["achievement_id"]
+            isOneToOne: false
+            referencedRelation: "achievements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_achievements_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "alltime_leaderboard"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "user_achievements_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "monthly_leaderboard"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "user_achievements_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_activities: {
         Row: {
           activity_type: string
@@ -972,20 +1110,22 @@ export type Database = {
       }
     }
     Functions: {
-      calculate_level: {
-        Args: { xp: number }
-        Returns: number
+      award_game_activity_xp: {
+        Args: { p_game_id: string; p_profile_id: string; p_score: number }
+        Returns: Json
       }
+      calculate_level: { Args: { xp: number }; Returns: number }
       calculate_monthly_xp: {
         Args: { target_month?: string; target_profile_id: string }
         Returns: number
       }
+      check_achievements: { Args: { p_profile_id: string }; Returns: Json }
       generate_temp_password: {
         Args: { target_user_id: string }
         Returns: string
       }
       get_leaderboard_data: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           current_level: number
           id: string
@@ -1002,10 +1142,8 @@ export type Database = {
         Args: { profile_id: string; xp_amount: number }
         Returns: undefined
       }
-      is_admin: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
+      is_admin: { Args: never; Returns: boolean }
+      record_daily_login: { Args: { p_profile_id: string }; Returns: Json }
     }
     Enums: {
       [_ in never]: never
