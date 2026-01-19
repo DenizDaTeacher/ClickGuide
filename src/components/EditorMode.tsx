@@ -13,6 +13,7 @@ import { WorkflowStepEditor } from "./WorkflowStepEditor";
 import { ObjectionManager } from "./ObjectionManager";
 import { TemplateSelector } from "./TemplateSelector";
 import { AnalyticsExport } from "./AnalyticsExport";
+import { NewsBoard } from "./NewsBoard";
 import { CallStep } from "@/hooks/useCallSteps";
 import {
   DndContext,
@@ -500,9 +501,10 @@ export default function EditorMode({
   return (
     <>
     <Tabs defaultValue="steps" className="w-full">
-      <TabsList className="grid w-full grid-cols-2">
+      <TabsList className="grid w-full grid-cols-3">
         <TabsTrigger value="steps">Schritte</TabsTrigger>
         <TabsTrigger value="objections">Einwände</TabsTrigger>
+        <TabsTrigger value="news">Neuigkeiten</TabsTrigger>
       </TabsList>
       
       <TabsContent value="steps" className="space-y-6">
@@ -657,6 +659,10 @@ export default function EditorMode({
       
       <TabsContent value="objections">
         <ObjectionManager />
+      </TabsContent>
+
+      <TabsContent value="news" className="space-y-6">
+        <NewsBoard isEditorMode={true} />
       </TabsContent>
     </Tabs>
 
