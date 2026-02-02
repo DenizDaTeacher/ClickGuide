@@ -7,19 +7,30 @@ import { Badge } from '@/components/ui/badge';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Archive, Search, CalendarIcon, Star, Hash, Clock, FileText, ChevronDown, ChevronUp } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { Archive, Search, CalendarIcon, Star, Hash, Clock, FileText, ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { ChecklistResponse, ScaleResponse } from '@/hooks/useCallFeedback';
+import { toast } from 'sonner';
 
 interface FeedbackEntry {
   id: string;
   conversationId: string | null;
   workflowName: string;
-  sessionId: string;
   checklistResponses: ChecklistResponse[];
   scaleResponses: ScaleResponse[];
   notes: string | null;
@@ -35,6 +46,7 @@ export default function FeedbackArchive() {
   const [searchConversationId, setSearchConversationId] = useState('');
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [expandedEntries, setExpandedEntries] = useState<Set<string>>(new Set());
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchFeedback();
@@ -59,7 +71,6 @@ export default function FeedbackArchive() {
         id: item.id,
         conversationId: (item as any).conversation_id || null,
         workflowName: item.workflow_name,
-        sessionId: item.session_id,
         checklistResponses: (item.checklist_responses as unknown) as ChecklistResponse[],
         scaleResponses: (item.scale_responses as unknown) as ScaleResponse[],
         notes: item.notes,
@@ -71,6 +82,32 @@ export default function FeedbackArchive() {
       setFeedbackEntries(entries);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    setDeletingId(id);
+    try {
+      const { error } = await supabase
+        .from('call_feedback')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        console.error('Error deleting feedback:', error);
+        toast.error('Fehler beim Löschen');
+        return;
+      }
+
+      setFeedbackEntries((prev) => prev.filter((e) => e.id !== id));
+      setExpandedEntries((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+      toast.success('Feedback gelöscht');
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -240,13 +277,14 @@ export default function FeedbackArchive() {
                         className="w-full flex items-center justify-between p-4 bg-muted/30 hover:bg-muted/50 transition-colors text-left"
                       >
                         <div className="flex items-center gap-4 flex-wrap">
-                          {/* Conversation ID */}
-                          {entry.conversationId && (
-                            <Badge variant="outline" className="font-mono gap-1">
-                              <Hash className="h-3 w-3" />
-                              {entry.conversationId}
-                            </Badge>
-                          )}
+                          {/* Conversation ID - prominent display */}
+                          <Badge 
+                            variant={entry.conversationId ? "default" : "secondary"} 
+                            className="font-mono gap-1 text-sm"
+                          >
+                            <Hash className="h-3 w-3" />
+                            {entry.conversationId || 'Keine ID'}
+                          </Badge>
 
                           {/* Date & Time */}
                           <span className="flex items-center gap-1 text-sm text-muted-foreground">
@@ -273,7 +311,7 @@ export default function FeedbackArchive() {
 
                           {/* Email Status */}
                           {entry.emailSentAt && (
-                            <Badge variant="secondary" className="text-xs">
+                            <Badge variant="outline" className="text-xs">
                               E-Mail versendet
                             </Badge>
                           )}
@@ -289,16 +327,18 @@ export default function FeedbackArchive() {
                       {/* Expanded Content */}
                       {isExpanded && (
                         <div className="p-4 space-y-4 border-t bg-background">
+                          {/* Conversation ID - large display in details */}
+                          <div className="p-3 rounded-lg bg-primary/5 border border-primary/20">
+                            <Label className="text-xs text-muted-foreground">Konversations-ID</Label>
+                            <p className="font-mono text-lg font-semibold">
+                              {entry.conversationId || <span className="text-muted-foreground italic">Nicht angegeben</span>}
+                            </p>
+                          </div>
+
                           {/* Workflow Info */}
-                          <div className="grid grid-cols-2 gap-2 text-sm">
-                            <div>
-                              <span className="text-muted-foreground">Workflow:</span>{' '}
-                              <span className="font-medium">{entry.workflowName}</span>
-                            </div>
-                            <div>
-                              <span className="text-muted-foreground">Session:</span>{' '}
-                              <span className="font-mono text-xs">{entry.sessionId.substring(0, 8)}...</span>
-                            </div>
+                          <div className="text-sm">
+                            <span className="text-muted-foreground">Workflow:</span>{' '}
+                            <span className="font-medium">{entry.workflowName}</span>
                           </div>
 
                           {/* Checklist Responses */}
@@ -377,6 +417,49 @@ export default function FeedbackArchive() {
                               </p>
                             </div>
                           )}
+
+                          {/* Delete Button */}
+                          <div className="flex justify-end pt-2 border-t">
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                  disabled={deletingId === entry.id}
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  {deletingId === entry.id ? 'Löschen...' : 'Löschen'}
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Feedback löschen?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Möchtest du dieses Feedback wirklich löschen? 
+                                    {entry.conversationId && (
+                                      <span className="block mt-2 font-mono font-semibold">
+                                        Konversations-ID: {entry.conversationId}
+                                      </span>
+                                    )}
+                                    <span className="block mt-1 text-muted-foreground">
+                                      Erstellt am {format(createdAt, 'dd.MM.yyyy HH:mm', { locale: de })}
+                                    </span>
+                                    Diese Aktion kann nicht rückgängig gemacht werden.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => handleDelete(entry.id)}
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  >
+                                    Löschen
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
                         </div>
                       )}
                     </div>
