@@ -177,41 +177,7 @@ export function useCallFeedback() {
       return { success: false, error };
     }
 
-    // Send email if recipients are configured
-    let emailStatus: { sent: boolean; error?: string } = { sent: false };
-    if (settings?.notificationEmails && settings.notificationEmails.length > 0) {
-      try {
-        const { data: fnData, error: fnError } = await supabase.functions.invoke('send-feedback-email', {
-          body: {
-            feedbackId: data.id,
-            tenantId,
-            workflowName: feedback.workflowName,
-            checklistResponses: feedback.checklistResponses,
-            scaleResponses: feedback.scaleResponses,
-            notes: feedback.notes,
-            overallRating: feedback.overallRating,
-            callDuration,
-            stepsCompleted,
-            stepsTotal,
-            recipientEmails: settings.notificationEmails,
-          },
-        });
-
-        if (fnError) {
-          emailStatus = { sent: false, error: fnError.message };
-        } else if ((fnData as any)?.success === false) {
-          emailStatus = { sent: false, error: (fnData as any)?.error ?? 'Unbekannter Fehler' };
-        } else {
-          emailStatus = { sent: true };
-        }
-      } catch (emailError) {
-        console.error('Error sending feedback email:', emailError);
-        emailStatus = { sent: false, error: (emailError as any)?.message ?? 'Unbekannter Fehler' };
-        // Don't fail the whole operation if email fails
-      }
-    }
-
-    return { success: true, data, emailStatus };
+    return { success: true, data };
   };
 
   return {
