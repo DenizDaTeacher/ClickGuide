@@ -176,9 +176,10 @@ export function useCallFeedback() {
     }
 
     // Send email if recipients are configured
+    let emailStatus: { sent: boolean; error?: string } = { sent: false };
     if (settings?.notificationEmails && settings.notificationEmails.length > 0) {
       try {
-        await supabase.functions.invoke('send-feedback-email', {
+        const { data: fnData, error: fnError } = await supabase.functions.invoke('send-feedback-email', {
           body: {
             feedbackId: data.id,
             tenantId,
@@ -193,13 +194,22 @@ export function useCallFeedback() {
             recipientEmails: settings.notificationEmails,
           },
         });
+
+        if (fnError) {
+          emailStatus = { sent: false, error: fnError.message };
+        } else if ((fnData as any)?.success === false) {
+          emailStatus = { sent: false, error: (fnData as any)?.error ?? 'Unbekannter Fehler' };
+        } else {
+          emailStatus = { sent: true };
+        }
       } catch (emailError) {
         console.error('Error sending feedback email:', emailError);
+        emailStatus = { sent: false, error: (emailError as any)?.message ?? 'Unbekannter Fehler' };
         // Don't fail the whole operation if email fails
       }
     }
 
-    return { success: true, data };
+    return { success: true, data, emailStatus };
   };
 
   return {

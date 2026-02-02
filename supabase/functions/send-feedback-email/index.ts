@@ -6,7 +6,8 @@ const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 interface FeedbackEmailRequest {
@@ -34,7 +35,7 @@ interface FeedbackEmailRequest {
 
 const handler = async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response("ok", { headers: corsHeaders });
   }
 
   try {
@@ -129,6 +130,26 @@ const handler = async (req: Request): Promise<Response> => {
       html: emailHtml,
     });
 
+    const resendError = (emailResponse as any)?.error;
+    if (resendError) {
+      console.error("Resend returned error:", resendError);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: typeof resendError === "string" ? resendError : (resendError?.message ?? "Resend error"),
+        }),
+        { status: 502, headers: { "Content-Type": "application/json", ...corsHeaders } },
+      );
+    }
+
+    if (!emailResponse?.data?.id) {
+      console.error("Resend returned no email id:", emailResponse);
+      return new Response(
+        JSON.stringify({ success: false, error: "Email could not be sent (no id returned)" }),
+        { status: 502, headers: { "Content-Type": "application/json", ...corsHeaders } },
+      );
+    }
+
     console.log("Email sent successfully:", emailResponse);
 
     // Update feedback record with email_sent_at
@@ -136,19 +157,23 @@ const handler = async (req: Request): Promise<Response> => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    await supabase
+    const { error: updateError } = await supabase
       .from("call_feedback")
       .update({ email_sent_at: new Date().toISOString() })
       .eq("id", data.feedbackId);
 
+    if (updateError) {
+      console.error("Failed to update call_feedback.email_sent_at:", updateError);
+    }
+
     return new Response(
-      JSON.stringify({ success: true, emailId: emailResponse.data?.id }),
+      JSON.stringify({ success: true, emailId: emailResponse.data.id }),
       { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
   } catch (error: any) {
     console.error("Error in send-feedback-email:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ success: false, error: error.message }),
       { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
   }
