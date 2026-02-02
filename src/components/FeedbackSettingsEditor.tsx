@@ -8,6 +8,83 @@ import { Badge } from '@/components/ui/badge';
 import { Plus, Trash2, Save, Mail, ListChecks, GripVertical, Star } from 'lucide-react';
 import { useCallFeedback, ChecklistQuestion, ScaleQuestion } from '@/hooks/useCallFeedback';
 import { toast } from 'sonner';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
+interface SortableQuestionItemProps {
+  id: string;
+  question: string;
+  required: boolean;
+  onToggleRequired: () => void;
+  onRemove: () => void;
+  isScale?: boolean;
+}
+
+function SortableQuestionItem({ id, question, required, onToggleRequired, onRemove, isScale }: SortableQuestionItemProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="flex items-center gap-3 p-3 rounded-lg bg-muted/50"
+    >
+      <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing">
+        <GripVertical className="h-4 w-4 text-muted-foreground" />
+      </div>
+      {isScale && (
+        <div className="flex items-center gap-1 text-yellow-500">
+          {[1, 2, 3, 4, 5].map((star) => (
+            <Star key={star} className="h-3 w-3 fill-current" />
+          ))}
+        </div>
+      )}
+      <span className="flex-1">{question}</span>
+      <Badge
+        variant={required ? 'default' : 'secondary'}
+        className="cursor-pointer"
+        onClick={onToggleRequired}
+      >
+        {required ? 'Pflicht' : 'Optional'}
+      </Badge>
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={onRemove}
+      >
+        <Trash2 className="h-4 w-4 text-destructive" />
+      </Button>
+    </div>
+  );
+}
 
 export default function FeedbackSettingsEditor() {
   const { settings, loading, saveSettings } = useCallFeedback();
@@ -93,6 +170,36 @@ export default function FeedbackSettingsEditor() {
     setEmails(emails.filter(e => e !== email));
   };
 
+  // Drag and drop sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleQuestionDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      setQuestions((items) => {
+        const oldIndex = items.findIndex((i) => i.id === active.id);
+        const newIndex = items.findIndex((i) => i.id === over.id);
+        return arrayMove(items, oldIndex, newIndex);
+      });
+    }
+  };
+
+  const handleScaleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      setScaleQuestions((items) => {
+        const oldIndex = items.findIndex((i) => i.id === active.id);
+        const newIndex = items.findIndex((i) => i.id === over.id);
+        return arrayMove(items, oldIndex, newIndex);
+      });
+    }
+  };
+
   const handleSave = async () => {
     setSaving(true);
     const success = await saveSettings({
@@ -152,35 +259,33 @@ export default function FeedbackSettingsEditor() {
       {/* Checklist Questions */}
       <Card>
         <CardHeader>
-          <CardTitle>Checkliste-Fragen</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <ListChecks className="h-5 w-5" />
+            Checkliste-Fragen
+          </CardTitle>
           <CardDescription>
-            Fragen, die der Agent nach jedem Call beantworten soll.
+            Fragen, die der Agent nach jedem Call beantworten soll. Ziehe Fragen per Drag & Drop, um die Reihenfolge zu ändern.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {questions.map((question, index) => (
-            <div
-              key={question.id}
-              className="flex items-center gap-3 p-3 rounded-lg bg-muted/50"
-            >
-              <GripVertical className="h-4 w-4 text-muted-foreground cursor-move" />
-              <span className="flex-1">{question.question}</span>
-              <Badge
-                variant={question.required ? 'default' : 'secondary'}
-                className="cursor-pointer"
-                onClick={() => handleToggleRequired(question.id)}
-              >
-                {question.required ? 'Pflicht' : 'Optional'}
-              </Badge>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => handleRemoveQuestion(question.id)}
-              >
-                <Trash2 className="h-4 w-4 text-destructive" />
-              </Button>
-            </div>
-          ))}
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleQuestionDragEnd}
+          >
+            <SortableContext items={questions.map(q => q.id)} strategy={verticalListSortingStrategy}>
+              {questions.map((question) => (
+                <SortableQuestionItem
+                  key={question.id}
+                  id={question.id}
+                  question={question.question}
+                  required={question.required}
+                  onToggleRequired={() => handleToggleRequired(question.id)}
+                  onRemove={() => handleRemoveQuestion(question.id)}
+                />
+              ))}
+            </SortableContext>
+          </DndContext>
           
           <div className="flex gap-2">
             <Input
@@ -204,38 +309,29 @@ export default function FeedbackSettingsEditor() {
             Skalenfragen
           </CardTitle>
           <CardDescription>
-            Fragen mit Sternebewertung und optionalem Notizfeld für Selbsteinschätzung.
+            Fragen mit Sternebewertung und optionalem Notizfeld für Selbsteinschätzung. Ziehe Fragen per Drag & Drop, um die Reihenfolge zu ändern.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {scaleQuestions.map((question) => (
-            <div
-              key={question.id}
-              className="flex items-center gap-3 p-3 rounded-lg bg-muted/50"
-            >
-              <GripVertical className="h-4 w-4 text-muted-foreground cursor-move" />
-              <div className="flex items-center gap-1 text-yellow-500">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <Star key={star} className="h-3 w-3 fill-current" />
-                ))}
-              </div>
-              <span className="flex-1">{question.question}</span>
-              <Badge
-                variant={question.required ? 'default' : 'secondary'}
-                className="cursor-pointer"
-                onClick={() => handleToggleScaleRequired(question.id)}
-              >
-                {question.required ? 'Pflicht' : 'Optional'}
-              </Badge>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => handleRemoveScaleQuestion(question.id)}
-              >
-                <Trash2 className="h-4 w-4 text-destructive" />
-              </Button>
-            </div>
-          ))}
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleScaleDragEnd}
+          >
+            <SortableContext items={scaleQuestions.map(q => q.id)} strategy={verticalListSortingStrategy}>
+              {scaleQuestions.map((question) => (
+                <SortableQuestionItem
+                  key={question.id}
+                  id={question.id}
+                  question={question.question}
+                  required={question.required}
+                  onToggleRequired={() => handleToggleScaleRequired(question.id)}
+                  onRemove={() => handleRemoveScaleQuestion(question.id)}
+                  isScale
+                />
+              ))}
+            </SortableContext>
+          </DndContext>
           
           <div className="flex gap-2">
             <Input
@@ -263,23 +359,28 @@ export default function FeedbackSettingsEditor() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex flex-wrap gap-2">
+          {/* Current Email Recipients */}
+          <div className="p-4 rounded-lg border bg-muted/30">
+            <Label className="text-sm font-medium mb-2 block">Aktuelle Empfänger ({emails.length})</Label>
             {emails.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-muted-foreground italic">
                 Keine E-Mail-Empfänger konfiguriert. Feedbacks werden nur gespeichert, aber nicht versendet.
               </p>
             ) : (
-              emails.map((email) => (
-                <Badge key={email} variant="secondary" className="gap-1 py-1">
-                  {email}
-                  <button
-                    onClick={() => handleRemoveEmail(email)}
-                    className="ml-1 hover:text-destructive"
-                  >
-                    ×
-                  </button>
-                </Badge>
-              ))
+              <div className="flex flex-wrap gap-2">
+                {emails.map((email) => (
+                  <Badge key={email} variant="outline" className="gap-2 py-1.5 px-3 text-sm bg-background">
+                    <Mail className="h-3 w-3" />
+                    {email}
+                    <button
+                      onClick={() => handleRemoveEmail(email)}
+                      className="ml-1 hover:text-destructive font-bold"
+                    >
+                      ×
+                    </button>
+                  </Badge>
+                ))}
+              </div>
             )}
           </div>
           
