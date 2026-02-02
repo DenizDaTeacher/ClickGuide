@@ -5,9 +5,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Trash2, Save, Mail, ListChecks, GripVertical, Star } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Plus, Trash2, Save, Mail, ListChecks, GripVertical, Star, Archive, Settings } from 'lucide-react';
 import { useCallFeedback, ChecklistQuestion, ScaleQuestion } from '@/hooks/useCallFeedback';
 import { toast } from 'sonner';
+import FeedbackArchive from './FeedbackArchive';
 import {
   DndContext,
   closestCenter,
@@ -237,184 +239,201 @@ export default function FeedbackSettingsEditor() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* General Settings */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <ListChecks className="h-5 w-5" />
-            Feedback-Einstellungen
-          </CardTitle>
-          <CardDescription>
-            Konfiguriere, wie Agents nach einem Call Feedback geben können.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
-            <div>
-              <Label className="text-base">Feedback verpflichtend</Label>
-              <p className="text-sm text-muted-foreground">
-                Agent muss Feedback abgeben, bevor ein neuer Call gestartet werden kann
-              </p>
-            </div>
-            <Switch
-              checked={feedbackRequired}
-              onCheckedChange={setFeedbackRequired}
-            />
-          </div>
-        </CardContent>
-      </Card>
+    <Tabs defaultValue="settings" className="space-y-6">
+      <TabsList className="grid w-full grid-cols-2 max-w-md">
+        <TabsTrigger value="settings" className="flex items-center gap-2">
+          <Settings className="h-4 w-4" />
+          Einstellungen
+        </TabsTrigger>
+        <TabsTrigger value="archive" className="flex items-center gap-2">
+          <Archive className="h-4 w-4" />
+          Archiv
+        </TabsTrigger>
+      </TabsList>
 
-      {/* Checklist Questions */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <ListChecks className="h-5 w-5" />
-            Checkliste-Fragen
-          </CardTitle>
-          <CardDescription>
-            Fragen, die der Agent nach jedem Call beantworten soll. Ziehe Fragen per Drag & Drop, um die Reihenfolge zu ändern.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={handleQuestionDragEnd}
-          >
-            <SortableContext items={questions.map(q => q.id)} strategy={verticalListSortingStrategy}>
-              {questions.map((question) => (
-                <SortableQuestionItem
-                  key={question.id}
-                  id={question.id}
-                  question={question.question}
-                  required={question.required}
-                  onToggleRequired={() => handleToggleRequired(question.id)}
-                  onRemove={() => handleRemoveQuestion(question.id)}
-                />
-              ))}
-            </SortableContext>
-          </DndContext>
-          
-          <div className="flex gap-2">
-            <Input
-              placeholder="Neue Frage hinzufügen..."
-              value={newQuestion}
-              onChange={(e) => setNewQuestion(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleAddQuestion()}
-            />
-            <Button variant="outline" onClick={handleAddQuestion}>
-              <Plus className="h-4 w-4" />
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Scale Questions */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Star className="h-5 w-5" />
-            Skalenfragen
-          </CardTitle>
-          <CardDescription>
-            Fragen mit Sternebewertung und optionalem Notizfeld für Selbsteinschätzung. Ziehe Fragen per Drag & Drop, um die Reihenfolge zu ändern.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={handleScaleDragEnd}
-          >
-            <SortableContext items={scaleQuestions.map(q => q.id)} strategy={verticalListSortingStrategy}>
-              {scaleQuestions.map((question) => (
-                <SortableQuestionItem
-                  key={question.id}
-                  id={question.id}
-                  question={question.question}
-                  required={question.required}
-                  onToggleRequired={() => handleToggleScaleRequired(question.id)}
-                  onRemove={() => handleRemoveScaleQuestion(question.id)}
-                  isScale
-                />
-              ))}
-            </SortableContext>
-          </DndContext>
-          
-          <div className="flex gap-2">
-            <Input
-              placeholder="Neue Skalenfrage hinzufügen..."
-              value={newScaleQuestion}
-              onChange={(e) => setNewScaleQuestion(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleAddScaleQuestion()}
-            />
-            <Button variant="outline" onClick={handleAddScaleQuestion}>
-              <Plus className="h-4 w-4" />
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Email Recipients */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Mail className="h-5 w-5" />
-            E-Mail-Benachrichtigungen
-          </CardTitle>
-          <CardDescription>
-            Diese E-Mail-Adressen erhalten nach jedem abgeschlossenen Feedback einen Bericht.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Current Email Recipients */}
-          <div className="p-4 rounded-lg border bg-muted/30">
-            <Label className="text-sm font-medium mb-2 block">Aktuelle Empfänger ({emails.length})</Label>
-            {emails.length === 0 ? (
-              <p className="text-sm text-muted-foreground italic">
-                Keine E-Mail-Empfänger konfiguriert. Feedbacks werden nur gespeichert, aber nicht versendet.
-              </p>
-            ) : (
-              <div className="flex flex-wrap gap-2">
-                {emails.map((email) => (
-                  <Badge key={email} variant="outline" className="gap-2 py-1.5 px-3 text-sm bg-background">
-                    <Mail className="h-3 w-3" />
-                    {email}
-                    <button
-                      onClick={() => handleRemoveEmail(email)}
-                      className="ml-1 hover:text-destructive font-bold"
-                    >
-                      ×
-                    </button>
-                  </Badge>
-                ))}
+      <TabsContent value="settings" className="space-y-6">
+        {/* General Settings */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ListChecks className="h-5 w-5" />
+              Feedback-Einstellungen
+            </CardTitle>
+            <CardDescription>
+              Konfiguriere, wie Agents nach einem Call Feedback geben können.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
+              <div>
+                <Label className="text-base">Feedback verpflichtend</Label>
+                <p className="text-sm text-muted-foreground">
+                  Agent muss Feedback abgeben, bevor ein neuer Call gestartet werden kann
+                </p>
               </div>
-            )}
-          </div>
-          
-          <div className="flex gap-2">
-            <Input
-              type="email"
-              placeholder="E-Mail-Adresse hinzufügen..."
-              value={newEmail}
-              onChange={(e) => setNewEmail(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleAddEmail()}
-            />
-            <Button variant="outline" onClick={handleAddEmail}>
-              <Plus className="h-4 w-4" />
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+              <Switch
+                checked={feedbackRequired}
+                onCheckedChange={setFeedbackRequired}
+              />
+            </div>
+          </CardContent>
+        </Card>
 
-      {/* Save Button */}
-      <div className="flex justify-end">
-        <Button onClick={handleSave} disabled={saving} size="lg">
-          <Save className="h-4 w-4 mr-2" />
-          {saving ? 'Speichern...' : 'Einstellungen speichern'}
-        </Button>
-      </div>
-    </div>
+        {/* Checklist Questions */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ListChecks className="h-5 w-5" />
+              Checkliste-Fragen
+            </CardTitle>
+            <CardDescription>
+              Fragen, die der Agent nach jedem Call beantworten soll. Ziehe Fragen per Drag & Drop, um die Reihenfolge zu ändern.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleQuestionDragEnd}
+            >
+              <SortableContext items={questions.map(q => q.id)} strategy={verticalListSortingStrategy}>
+                {questions.map((question) => (
+                  <SortableQuestionItem
+                    key={question.id}
+                    id={question.id}
+                    question={question.question}
+                    required={question.required}
+                    onToggleRequired={() => handleToggleRequired(question.id)}
+                    onRemove={() => handleRemoveQuestion(question.id)}
+                  />
+                ))}
+              </SortableContext>
+            </DndContext>
+            
+            <div className="flex gap-2">
+              <Input
+                placeholder="Neue Frage hinzufügen..."
+                value={newQuestion}
+                onChange={(e) => setNewQuestion(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleAddQuestion()}
+              />
+              <Button variant="outline" onClick={handleAddQuestion}>
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Scale Questions */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Star className="h-5 w-5" />
+              Skalenfragen
+            </CardTitle>
+            <CardDescription>
+              Fragen mit Sternebewertung und optionalem Notizfeld für Selbsteinschätzung. Ziehe Fragen per Drag & Drop, um die Reihenfolge zu ändern.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleScaleDragEnd}
+            >
+              <SortableContext items={scaleQuestions.map(q => q.id)} strategy={verticalListSortingStrategy}>
+                {scaleQuestions.map((question) => (
+                  <SortableQuestionItem
+                    key={question.id}
+                    id={question.id}
+                    question={question.question}
+                    required={question.required}
+                    onToggleRequired={() => handleToggleScaleRequired(question.id)}
+                    onRemove={() => handleRemoveScaleQuestion(question.id)}
+                    isScale
+                  />
+                ))}
+              </SortableContext>
+            </DndContext>
+            
+            <div className="flex gap-2">
+              <Input
+                placeholder="Neue Skalenfrage hinzufügen..."
+                value={newScaleQuestion}
+                onChange={(e) => setNewScaleQuestion(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleAddScaleQuestion()}
+              />
+              <Button variant="outline" onClick={handleAddScaleQuestion}>
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Email Recipients */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Mail className="h-5 w-5" />
+              E-Mail-Benachrichtigungen
+            </CardTitle>
+            <CardDescription>
+              Diese E-Mail-Adressen erhalten nach jedem abgeschlossenen Feedback einen Bericht.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Current Email Recipients */}
+            <div className="p-4 rounded-lg border bg-muted/30">
+              <Label className="text-sm font-medium mb-2 block">Aktuelle Empfänger ({emails.length})</Label>
+              {emails.length === 0 ? (
+                <p className="text-sm text-muted-foreground italic">
+                  Keine E-Mail-Empfänger konfiguriert. Feedbacks werden nur gespeichert, aber nicht versendet.
+                </p>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {emails.map((email) => (
+                    <Badge key={email} variant="outline" className="gap-2 py-1.5 px-3 text-sm bg-background">
+                      <Mail className="h-3 w-3" />
+                      {email}
+                      <button
+                        onClick={() => handleRemoveEmail(email)}
+                        className="ml-1 hover:text-destructive font-bold"
+                      >
+                        ×
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              )}
+            </div>
+            
+            <div className="flex gap-2">
+              <Input
+                type="email"
+                placeholder="E-Mail-Adresse hinzufügen..."
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleAddEmail()}
+              />
+              <Button variant="outline" onClick={handleAddEmail}>
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Save Button */}
+        <div className="flex justify-end">
+          <Button onClick={handleSave} disabled={saving} size="lg">
+            <Save className="h-4 w-4 mr-2" />
+            {saving ? 'Speichern...' : 'Einstellungen speichern'}
+          </Button>
+        </div>
+      </TabsContent>
+
+      <TabsContent value="archive">
+        <FeedbackArchive />
+      </TabsContent>
+    </Tabs>
   );
 }

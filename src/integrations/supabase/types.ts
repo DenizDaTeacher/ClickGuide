@@ -192,6 +192,7 @@ export type Database = {
         Row: {
           call_analytics_id: string | null
           checklist_responses: Json
+          conversation_id: string | null
           created_at: string
           email_sent_at: string | null
           id: string
@@ -205,6 +206,7 @@ export type Database = {
         Insert: {
           call_analytics_id?: string | null
           checklist_responses?: Json
+          conversation_id?: string | null
           created_at?: string
           email_sent_at?: string | null
           id?: string
@@ -218,6 +220,7 @@ export type Database = {
         Update: {
           call_analytics_id?: string | null
           checklist_responses?: Json
+          conversation_id?: string | null
           created_at?: string
           email_sent_at?: string | null
           id?: string

@@ -90,6 +90,7 @@ export default function CallFeedbackForm({
         scaleResponses,
         notes: notes || null,
         overallRating: rating,
+        conversationId: conversationId.trim(),
       },
       callAnalyticsId,
       callDuration,
