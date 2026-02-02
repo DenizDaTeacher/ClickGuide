@@ -40,7 +40,7 @@ interface FeedbackEntry {
 }
 
 export default function FeedbackArchive() {
-  const { tenantId } = useTenant();
+  const { tenantId, loading: tenantLoading } = useTenant();
   const [feedbackEntries, setFeedbackEntries] = useState<FeedbackEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchConversationId, setSearchConversationId] = useState('');
@@ -49,8 +49,14 @@ export default function FeedbackArchive() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchFeedback();
-  }, [tenantId]);
+    // Wait until tenant is loaded and we have a valid tenantId
+    if (!tenantLoading && tenantId && tenantId !== 'default') {
+      fetchFeedback();
+    } else if (!tenantLoading && tenantId === 'default') {
+      // If default tenant, also fetch (might have data)
+      fetchFeedback();
+    }
+  }, [tenantId, tenantLoading]);
 
   const fetchFeedback = async () => {
     setLoading(true);
