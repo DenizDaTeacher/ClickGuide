@@ -124,7 +124,7 @@ const handler = async (req: Request): Promise<Response> => {
     `;
 
     const emailResponse = await resend.emails.send({
-      from: "Call Feedback <onboarding@resend.dev>",
+      from: "Call Feedback <noreply@ccone.de>",
       to: data.recipientEmails,
       subject: `📞 Call Feedback: ${data.workflowName} - ${ratingStars}`,
       html: emailHtml,
