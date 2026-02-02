@@ -4,7 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Star, Send, SkipForward } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Star, Send, SkipForward, Hash } from 'lucide-react';
 import { useCallFeedback, ChecklistResponse, ScaleResponse } from '@/hooks/useCallFeedback';
 import { toast } from 'sonner';
 
@@ -30,6 +31,7 @@ export default function CallFeedbackForm({
   onSkip,
 }: CallFeedbackFormProps) {
   const { settings, submitFeedback } = useCallFeedback();
+  const [conversationId, setConversationId] = useState('');
   const [responses, setResponses] = useState<Record<string, boolean>>({});
   const [scaleRatings, setScaleRatings] = useState<Record<string, number>>({});
   const [scaleNotes, setScaleNotes] = useState<Record<string, string>>({});
@@ -45,6 +47,12 @@ export default function CallFeedbackForm({
 
   const handleSubmit = async () => {
     if (!settings) return;
+
+    // Check conversation ID
+    if (!conversationId.trim()) {
+      toast.error('Bitte gib eine Konversations-ID ein');
+      return;
+    }
 
     // Check required checklist fields
     const requiredQuestions = settings.checklistQuestions.filter(q => q.required);
@@ -117,6 +125,24 @@ export default function CallFeedbackForm({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Conversation ID - Required first */}
+        <div className="space-y-2 p-4 rounded-lg border-2 border-primary/20 bg-primary/5">
+          <Label htmlFor="conversationId" className="flex items-center gap-2 font-semibold">
+            <Hash className="h-4 w-4" />
+            Konversations-ID <span className="text-destructive">*</span>
+          </Label>
+          <Input
+            id="conversationId"
+            placeholder="z.B. 12345 oder ABC-123"
+            value={conversationId}
+            onChange={(e) => setConversationId(e.target.value)}
+            className="font-mono"
+          />
+          <p className="text-xs text-muted-foreground">
+            Gib die ID des Gesprächs ein, bevor du das Feedback ausfüllst.
+          </p>
+        </div>
+
         {/* Overall Rating */}
         <div className="space-y-2">
           <Label>Gesamtbewertung</Label>
