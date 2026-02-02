@@ -151,7 +151,7 @@ export default function FeedbackSettingsEditor() {
     ));
   };
 
-  const handleAddEmail = () => {
+  const handleAddEmail = async () => {
     const email = newEmail.trim().toLowerCase();
     if (!email) return;
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -162,12 +162,21 @@ export default function FeedbackSettingsEditor() {
       toast.error('E-Mail bereits hinzugefügt');
       return;
     }
-    setEmails([...emails, email]);
+    const nextEmails = [...emails, email];
+    setEmails(nextEmails);
     setNewEmail('');
+
+    // Persist immediately so the user doesn't forget the big save button
+    const ok = await saveSettings({ notificationEmails: nextEmails });
+    if (!ok) toast.error('E-Mail-Empfänger konnten nicht gespeichert werden');
   };
 
-  const handleRemoveEmail = (email: string) => {
-    setEmails(emails.filter(e => e !== email));
+  const handleRemoveEmail = async (email: string) => {
+    const nextEmails = emails.filter(e => e !== email);
+    setEmails(nextEmails);
+
+    const ok = await saveSettings({ notificationEmails: nextEmails });
+    if (!ok) toast.error('E-Mail-Empfänger konnten nicht gespeichert werden');
   };
 
   // Drag and drop sensors
