@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Trash2, Save, Mail, ListChecks, GripVertical, Star, Archive, Settings } from 'lucide-react';
+import { Plus, Trash2, Save, ListChecks, GripVertical, Star, Archive, Settings } from 'lucide-react';
 import { useCallFeedback, ChecklistQuestion, ScaleQuestion } from '@/hooks/useCallFeedback';
 import { toast } from 'sonner';
 import FeedbackArchive from './FeedbackArchive';
@@ -93,8 +93,6 @@ export default function FeedbackSettingsEditor() {
   const [feedbackRequired, setFeedbackRequired] = useState(false);
   const [questions, setQuestions] = useState<ChecklistQuestion[]>([]);
   const [scaleQuestions, setScaleQuestions] = useState<ScaleQuestion[]>([]);
-  const [emails, setEmails] = useState<string[]>([]);
-  const [newEmail, setNewEmail] = useState('');
   const [newQuestion, setNewQuestion] = useState('');
   const [newScaleQuestion, setNewScaleQuestion] = useState('');
   const [saving, setSaving] = useState(false);
@@ -104,7 +102,6 @@ export default function FeedbackSettingsEditor() {
       setFeedbackRequired(settings.feedbackRequired);
       setQuestions(settings.checklistQuestions);
       setScaleQuestions(settings.scaleQuestions || []);
-      setEmails(settings.notificationEmails);
     }
   }, [settings]);
 
@@ -153,34 +150,6 @@ export default function FeedbackSettingsEditor() {
     ));
   };
 
-  const handleAddEmail = async () => {
-    const email = newEmail.trim().toLowerCase();
-    if (!email) return;
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      toast.error('Ungültige E-Mail-Adresse');
-      return;
-    }
-    if (emails.includes(email)) {
-      toast.error('E-Mail bereits hinzugefügt');
-      return;
-    }
-    const nextEmails = [...emails, email];
-    setEmails(nextEmails);
-    setNewEmail('');
-
-    // Persist immediately so the user doesn't forget the big save button
-    const ok = await saveSettings({ notificationEmails: nextEmails });
-    if (!ok) toast.error('E-Mail-Empfänger konnten nicht gespeichert werden');
-  };
-
-  const handleRemoveEmail = async (email: string) => {
-    const nextEmails = emails.filter(e => e !== email);
-    setEmails(nextEmails);
-
-    const ok = await saveSettings({ notificationEmails: nextEmails });
-    if (!ok) toast.error('E-Mail-Empfänger konnten nicht gespeichert werden');
-  };
-
   // Drag and drop sensors
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -217,7 +186,6 @@ export default function FeedbackSettingsEditor() {
       feedbackRequired,
       checklistQuestions: questions,
       scaleQuestions,
-      notificationEmails: emails,
     });
     setSaving(false);
     
@@ -364,58 +332,6 @@ export default function FeedbackSettingsEditor() {
                 onKeyDown={(e) => e.key === 'Enter' && handleAddScaleQuestion()}
               />
               <Button variant="outline" onClick={handleAddScaleQuestion}>
-                <Plus className="h-4 w-4" />
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Email Recipients */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Mail className="h-5 w-5" />
-              E-Mail-Benachrichtigungen
-            </CardTitle>
-            <CardDescription>
-              Diese E-Mail-Adressen erhalten nach jedem abgeschlossenen Feedback einen Bericht.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Current Email Recipients */}
-            <div className="p-4 rounded-lg border bg-muted/30">
-              <Label className="text-sm font-medium mb-2 block">Aktuelle Empfänger ({emails.length})</Label>
-              {emails.length === 0 ? (
-                <p className="text-sm text-muted-foreground italic">
-                  Keine E-Mail-Empfänger konfiguriert. Feedbacks werden nur gespeichert, aber nicht versendet.
-                </p>
-              ) : (
-                <div className="flex flex-wrap gap-2">
-                  {emails.map((email) => (
-                    <Badge key={email} variant="outline" className="gap-2 py-1.5 px-3 text-sm bg-background">
-                      <Mail className="h-3 w-3" />
-                      {email}
-                      <button
-                        onClick={() => handleRemoveEmail(email)}
-                        className="ml-1 hover:text-destructive font-bold"
-                      >
-                        ×
-                      </button>
-                    </Badge>
-                  ))}
-                </div>
-              )}
-            </div>
-            
-            <div className="flex gap-2">
-              <Input
-                type="email"
-                placeholder="E-Mail-Adresse hinzufügen..."
-                value={newEmail}
-                onChange={(e) => setNewEmail(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleAddEmail()}
-              />
-              <Button variant="outline" onClick={handleAddEmail}>
                 <Plus className="h-4 w-4" />
               </Button>
             </div>

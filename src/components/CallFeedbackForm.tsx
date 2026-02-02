@@ -102,12 +102,6 @@ export default function CallFeedbackForm({
 
     if (result.success) {
       toast.success('Feedback erfolgreich gespeichert!');
-      if ((result as any).emailStatus?.sent === false) {
-        const msg = (result as any).emailStatus?.error
-          ? `E-Mail konnte nicht gesendet werden: ${(result as any).emailStatus.error}`
-          : 'E-Mail konnte nicht gesendet werden';
-        toast.warning(msg);
-      }
       onComplete();
     } else {
       toast.error('Fehler beim Speichern des Feedbacks');
