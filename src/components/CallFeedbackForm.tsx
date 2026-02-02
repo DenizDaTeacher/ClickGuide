@@ -5,7 +5,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Star, Send, SkipForward } from 'lucide-react';
-import { useCallFeedback, ChecklistResponse } from '@/hooks/useCallFeedback';
+import { useCallFeedback, ChecklistResponse, ScaleResponse } from '@/hooks/useCallFeedback';
 import { toast } from 'sonner';
 
 interface CallFeedbackFormProps {
@@ -31,6 +31,9 @@ export default function CallFeedbackForm({
 }: CallFeedbackFormProps) {
   const { settings, submitFeedback } = useCallFeedback();
   const [responses, setResponses] = useState<Record<string, boolean>>({});
+  const [scaleRatings, setScaleRatings] = useState<Record<string, number>>({});
+  const [scaleNotes, setScaleNotes] = useState<Record<string, string>>({});
+  const [hoveredScaleRatings, setHoveredScaleRatings] = useState<Record<string, number>>({});
   const [notes, setNotes] = useState('');
   const [rating, setRating] = useState<number | null>(null);
   const [hoveredRating, setHoveredRating] = useState<number | null>(null);
@@ -43,11 +46,15 @@ export default function CallFeedbackForm({
   const handleSubmit = async () => {
     if (!settings) return;
 
-    // Check required fields
+    // Check required checklist fields
     const requiredQuestions = settings.checklistQuestions.filter(q => q.required);
     const allRequiredAnswered = requiredQuestions.every(q => responses[q.id] !== undefined);
 
-    if (!allRequiredAnswered) {
+    // Check required scale questions
+    const requiredScaleQuestions = settings.scaleQuestions?.filter(q => q.required) || [];
+    const allRequiredScalesAnswered = requiredScaleQuestions.every(q => scaleRatings[q.id] !== undefined);
+
+    if (!allRequiredAnswered || !allRequiredScalesAnswered) {
       toast.error('Bitte beantworte alle Pflichtfragen');
       return;
     }
@@ -60,11 +67,19 @@ export default function CallFeedbackForm({
       answer: responses[q.id] ?? false,
     }));
 
+    const scaleResponses: ScaleResponse[] = (settings.scaleQuestions || []).map(q => ({
+      id: q.id,
+      question: q.question,
+      rating: scaleRatings[q.id] ?? 0,
+      notes: scaleNotes[q.id] || undefined,
+    }));
+
     const result = await submitFeedback(
       {
         workflowName,
         sessionId,
         checklistResponses,
+        scaleResponses,
         notes: notes || null,
         overallRating: rating,
       },
@@ -128,35 +143,81 @@ export default function CallFeedbackForm({
         </div>
 
         {/* Checklist */}
-        <div className="space-y-3">
-          <Label>Checkliste</Label>
-          {settings.checklistQuestions.map((question) => (
-            <div key={question.id} className="flex items-center space-x-3 p-3 rounded-lg bg-muted/50">
-              <Checkbox
-                id={question.id}
-                checked={responses[question.id] ?? false}
-                onCheckedChange={(checked) => handleCheckboxChange(question.id, checked as boolean)}
-              />
-              <label
-                htmlFor={question.id}
-                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex-1"
-              >
-                {question.question}
-                {question.required && <span className="text-destructive ml-1">*</span>}
-              </label>
-            </div>
-          ))}
-        </div>
+        {settings.checklistQuestions.length > 0 && (
+          <div className="space-y-3">
+            <Label>Checkliste</Label>
+            {settings.checklistQuestions.map((question) => (
+              <div key={question.id} className="flex items-center space-x-3 p-3 rounded-lg bg-muted/50">
+                <Checkbox
+                  id={question.id}
+                  checked={responses[question.id] ?? false}
+                  onCheckedChange={(checked) => handleCheckboxChange(question.id, checked as boolean)}
+                />
+                <label
+                  htmlFor={question.id}
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex-1"
+                >
+                  {question.question}
+                  {question.required && <span className="text-destructive ml-1">*</span>}
+                </label>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Scale Questions */}
+        {settings.scaleQuestions && settings.scaleQuestions.length > 0 && (
+          <div className="space-y-4">
+            <Label>Selbsteinschätzung</Label>
+            {settings.scaleQuestions.map((question) => (
+              <div key={question.id} className="p-4 rounded-lg bg-muted/50 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">
+                    {question.question}
+                    {question.required && <span className="text-destructive ml-1">*</span>}
+                  </span>
+                </div>
+                <div className="flex gap-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => setScaleRatings(prev => ({ ...prev, [question.id]: star }))}
+                      onMouseEnter={() => setHoveredScaleRatings(prev => ({ ...prev, [question.id]: star }))}
+                      onMouseLeave={() => setHoveredScaleRatings(prev => ({ ...prev, [question.id]: 0 }))}
+                      className="p-1 transition-transform hover:scale-110"
+                    >
+                      <Star
+                        className={`h-6 w-6 ${
+                          star <= (hoveredScaleRatings[question.id] || scaleRatings[question.id] || 0)
+                            ? 'fill-yellow-400 text-yellow-400'
+                            : 'text-muted-foreground'
+                        }`}
+                      />
+                    </button>
+                  ))}
+                </div>
+                <Textarea
+                  placeholder="Warum diese Bewertung? (optional)"
+                  value={scaleNotes[question.id] || ''}
+                  onChange={(e) => setScaleNotes(prev => ({ ...prev, [question.id]: e.target.value }))}
+                  rows={2}
+                  className="text-sm"
+                />
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Notes */}
         <div className="space-y-2">
-          <Label htmlFor="notes">Notizen (optional)</Label>
+          <Label htmlFor="notes">Allgemeine Notizen (optional)</Label>
           <Textarea
             id="notes"
             placeholder="Besondere Vorkommnisse, Verbesserungsvorschläge, Kundenfeedback..."
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            rows={4}
+            rows={3}
           />
         </div>
 
