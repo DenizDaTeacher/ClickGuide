@@ -197,6 +197,7 @@ export type Database = {
           id: string
           notes: string | null
           overall_rating: number | null
+          scale_responses: Json
           session_id: string
           tenant_id: string
           workflow_name: string
@@ -209,6 +210,7 @@ export type Database = {
           id?: string
           notes?: string | null
           overall_rating?: number | null
+          scale_responses?: Json
           session_id: string
           tenant_id?: string
           workflow_name: string
@@ -221,6 +223,7 @@ export type Database = {
           id?: string
           notes?: string | null
           overall_rating?: number | null
+          scale_responses?: Json
           session_id?: string
           tenant_id?: string
           workflow_name?: string
@@ -406,6 +409,7 @@ export type Database = {
           feedback_required: boolean
           id: string
           notification_emails: Json
+          scale_questions: Json
           tenant_id: string
           updated_at: string
         }
@@ -415,6 +419,7 @@ export type Database = {
           feedback_required?: boolean
           id?: string
           notification_emails?: Json
+          scale_questions?: Json
           tenant_id?: string
           updated_at?: string
         }
@@ -424,6 +429,7 @@ export type Database = {
           feedback_required?: boolean
           id?: string
           notification_emails?: Json
+          scale_questions?: Json
           tenant_id?: string
           updated_at?: string
         }

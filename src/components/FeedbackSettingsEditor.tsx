@@ -5,23 +5,26 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Trash2, Save, Mail, ListChecks, GripVertical } from 'lucide-react';
-import { useCallFeedback, ChecklistQuestion } from '@/hooks/useCallFeedback';
+import { Plus, Trash2, Save, Mail, ListChecks, GripVertical, Star } from 'lucide-react';
+import { useCallFeedback, ChecklistQuestion, ScaleQuestion } from '@/hooks/useCallFeedback';
 import { toast } from 'sonner';
 
 export default function FeedbackSettingsEditor() {
   const { settings, loading, saveSettings } = useCallFeedback();
   const [feedbackRequired, setFeedbackRequired] = useState(false);
   const [questions, setQuestions] = useState<ChecklistQuestion[]>([]);
+  const [scaleQuestions, setScaleQuestions] = useState<ScaleQuestion[]>([]);
   const [emails, setEmails] = useState<string[]>([]);
   const [newEmail, setNewEmail] = useState('');
   const [newQuestion, setNewQuestion] = useState('');
+  const [newScaleQuestion, setNewScaleQuestion] = useState('');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (settings) {
       setFeedbackRequired(settings.feedbackRequired);
       setQuestions(settings.checklistQuestions);
+      setScaleQuestions(settings.scaleQuestions || []);
       setEmails(settings.notificationEmails);
     }
   }, [settings]);
@@ -44,6 +47,29 @@ export default function FeedbackSettingsEditor() {
 
   const handleToggleRequired = (id: string) => {
     setQuestions(questions.map(q => 
+      q.id === id ? { ...q, required: !q.required } : q
+    ));
+  };
+
+  const handleAddScaleQuestion = () => {
+    if (!newScaleQuestion.trim()) return;
+    
+    const newQ: ScaleQuestion = {
+      id: `scale_${Date.now()}`,
+      question: newScaleQuestion.trim(),
+      required: false,
+      maxStars: 5,
+    };
+    setScaleQuestions([...scaleQuestions, newQ]);
+    setNewScaleQuestion('');
+  };
+
+  const handleRemoveScaleQuestion = (id: string) => {
+    setScaleQuestions(scaleQuestions.filter(q => q.id !== id));
+  };
+
+  const handleToggleScaleRequired = (id: string) => {
+    setScaleQuestions(scaleQuestions.map(q => 
       q.id === id ? { ...q, required: !q.required } : q
     ));
   };
@@ -72,6 +98,7 @@ export default function FeedbackSettingsEditor() {
     const success = await saveSettings({
       feedbackRequired,
       checklistQuestions: questions,
+      scaleQuestions,
       notificationEmails: emails,
     });
     setSaving(false);
@@ -163,6 +190,61 @@ export default function FeedbackSettingsEditor() {
               onKeyDown={(e) => e.key === 'Enter' && handleAddQuestion()}
             />
             <Button variant="outline" onClick={handleAddQuestion}>
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Scale Questions */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Star className="h-5 w-5" />
+            Skalenfragen
+          </CardTitle>
+          <CardDescription>
+            Fragen mit Sternebewertung und optionalem Notizfeld für Selbsteinschätzung.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {scaleQuestions.map((question) => (
+            <div
+              key={question.id}
+              className="flex items-center gap-3 p-3 rounded-lg bg-muted/50"
+            >
+              <GripVertical className="h-4 w-4 text-muted-foreground cursor-move" />
+              <div className="flex items-center gap-1 text-yellow-500">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <Star key={star} className="h-3 w-3 fill-current" />
+                ))}
+              </div>
+              <span className="flex-1">{question.question}</span>
+              <Badge
+                variant={question.required ? 'default' : 'secondary'}
+                className="cursor-pointer"
+                onClick={() => handleToggleScaleRequired(question.id)}
+              >
+                {question.required ? 'Pflicht' : 'Optional'}
+              </Badge>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => handleRemoveScaleQuestion(question.id)}
+              >
+                <Trash2 className="h-4 w-4 text-destructive" />
+              </Button>
+            </div>
+          ))}
+          
+          <div className="flex gap-2">
+            <Input
+              placeholder="Neue Skalenfrage hinzufügen..."
+              value={newScaleQuestion}
+              onChange={(e) => setNewScaleQuestion(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleAddScaleQuestion()}
+            />
+            <Button variant="outline" onClick={handleAddScaleQuestion}>
               <Plus className="h-4 w-4" />
             </Button>
           </div>

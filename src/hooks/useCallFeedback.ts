@@ -8,10 +8,24 @@ export interface ChecklistQuestion {
   required: boolean;
 }
 
+export interface ScaleQuestion {
+  id: string;
+  question: string;
+  required: boolean;
+  maxStars?: number;
+}
+
 export interface ChecklistResponse {
   id: string;
   question: string;
   answer: boolean;
+}
+
+export interface ScaleResponse {
+  id: string;
+  question: string;
+  rating: number;
+  notes?: string;
 }
 
 export interface FeedbackSettings {
@@ -19,6 +33,7 @@ export interface FeedbackSettings {
   tenantId: string;
   feedbackRequired: boolean;
   checklistQuestions: ChecklistQuestion[];
+  scaleQuestions: ScaleQuestion[];
   notificationEmails: string[];
 }
 
@@ -29,6 +44,7 @@ export interface CallFeedback {
   workflowName: string;
   sessionId: string;
   checklistResponses: ChecklistResponse[];
+  scaleResponses: ScaleResponse[];
   notes: string | null;
   overallRating: number | null;
   createdAt?: string;
@@ -65,6 +81,7 @@ export function useCallFeedback() {
           tenantId: data.tenant_id,
           feedbackRequired: data.feedback_required,
           checklistQuestions: (data.checklist_questions as unknown) as ChecklistQuestion[],
+          scaleQuestions: (data.scale_questions as unknown) as ScaleQuestion[] || [],
           notificationEmails: (data.notification_emails as unknown) as string[],
         });
       } else {
@@ -75,12 +92,17 @@ export function useCallFeedback() {
           { id: 'upsell_attempted', question: 'Cross-/Upselling versucht?', required: false },
         ];
 
+        const defaultScaleQuestions = [
+          { id: 'self_performance', question: 'Wie bewertest du deine eigene Leistung?', required: false, maxStars: 5 },
+        ];
+
         const { data: newData, error: insertError } = await supabase
           .from('feedback_settings')
           .insert({
             tenant_id: tenantId,
             feedback_required: false,
             checklist_questions: defaultQuestions as unknown as any,
+            scale_questions: defaultScaleQuestions as unknown as any,
             notification_emails: [] as unknown as any,
           })
           .select()
@@ -92,6 +114,7 @@ export function useCallFeedback() {
             tenantId: newData.tenant_id,
             feedbackRequired: newData.feedback_required,
             checklistQuestions: (newData.checklist_questions as unknown) as ChecklistQuestion[],
+            scaleQuestions: (newData.scale_questions as unknown) as ScaleQuestion[] || [],
             notificationEmails: (newData.notification_emails as unknown) as string[],
           });
         }
@@ -109,6 +132,7 @@ export function useCallFeedback() {
       .update({
         feedback_required: newSettings.feedbackRequired ?? settings.feedbackRequired,
         checklist_questions: (newSettings.checklistQuestions ?? settings.checklistQuestions) as unknown as any,
+        scale_questions: (newSettings.scaleQuestions ?? settings.scaleQuestions) as unknown as any,
         notification_emails: (newSettings.notificationEmails ?? settings.notificationEmails) as unknown as any,
         updated_at: new Date().toISOString(),
       })
@@ -139,6 +163,7 @@ export function useCallFeedback() {
         workflow_name: feedback.workflowName,
         session_id: feedback.sessionId,
         checklist_responses: feedback.checklistResponses as unknown as any,
+        scale_responses: feedback.scaleResponses as unknown as any,
         notes: feedback.notes,
         overall_rating: feedback.overallRating,
       })
@@ -159,6 +184,7 @@ export function useCallFeedback() {
             tenantId,
             workflowName: feedback.workflowName,
             checklistResponses: feedback.checklistResponses,
+            scaleResponses: feedback.scaleResponses,
             notes: feedback.notes,
             overallRating: feedback.overallRating,
             callDuration,

@@ -18,6 +18,12 @@ interface FeedbackEmailRequest {
     question: string;
     answer: boolean;
   }>;
+  scaleResponses?: Array<{
+    id: string;
+    question: string;
+    rating: number;
+    notes?: string;
+  }>;
   notes: string | null;
   overallRating: number | null;
   callDuration: number | null;
@@ -53,6 +59,18 @@ const handler = async (req: Request): Promise<Response> => {
       </tr>
     `).join("");
 
+    const scaleHtml = data.scaleResponses && data.scaleResponses.length > 0
+      ? data.scaleResponses.map(item => `
+        <tr>
+          <td style="padding: 8px; border-bottom: 1px solid #eee;">
+            <strong>${item.question}</strong><br>
+            ${"⭐".repeat(item.rating)}${"☆".repeat(5 - item.rating)}
+            ${item.notes ? `<br><em style="color: #666; font-size: 12px;">${item.notes}</em>` : ""}
+          </td>
+        </tr>
+      `).join("")
+      : "";
+
     const durationFormatted = data.callDuration 
       ? `${Math.floor(data.callDuration / 60)}:${(data.callDuration % 60).toString().padStart(2, '0')} min`
       : "Unbekannt";
@@ -81,6 +99,13 @@ const handler = async (req: Request): Promise<Response> => {
         <table style="width: 100%; border-collapse: collapse;">
           ${checklistHtml}
         </table>
+
+        ${scaleHtml ? `
+          <h2 style="color: #374151; margin-top: 20px;">Selbsteinschätzung</h2>
+          <table style="width: 100%; border-collapse: collapse;">
+            ${scaleHtml}
+          </table>
+        ` : ""}
 
         ${data.notes ? `
           <h2 style="color: #374151; margin-top: 20px;">Notizen</h2>
