@@ -47,6 +47,7 @@ export interface CallFeedback {
   scaleResponses: ScaleResponse[];
   notes: string | null;
   overallRating: number | null;
+  conversationId?: string;
   createdAt?: string;
   emailSentAt?: string | null;
 }
@@ -166,6 +167,7 @@ export function useCallFeedback() {
         scale_responses: feedback.scaleResponses as unknown as any,
         notes: feedback.notes,
         overall_rating: feedback.overallRating,
+        conversation_id: feedback.conversationId || null,
       })
       .select()
       .single();
