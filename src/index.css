@@ -150,13 +150,21 @@ All colors MUST be HSL.
     color: hsl(var(--foreground));
   }
   
+  /* Ensure inline color styles from rich text editor are preserved */
+  .prose [style*="color"] {
+    color: inherit;
+  }
+  
+  .prose span[style] {
+    color: inherit;
+  }
+  
   .prose p {
     margin: 0.5rem 0;
   }
   
   .prose strong {
     font-weight: 600;
-    color: hsl(var(--foreground));
   }
   
   .prose em {
