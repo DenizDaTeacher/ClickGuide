@@ -1153,11 +1153,10 @@ export function WorkflowStepEditor({
 
               <div className="space-y-2">
                 <Label>Beschreibung</Label>
-                <Textarea
+                <RichTextEditor
                   value={subStepFormData.description || ''}
-                  onChange={(e) => setSubStepFormData(prev => ({ ...prev, description: e.target.value }))}
+                  onChange={(value) => setSubStepFormData(prev => ({ ...prev, description: value }))}
                   placeholder="Beschreibung des Unterschritts"
-                  rows={2}
                 />
               </div>
 

@@ -375,12 +375,10 @@ export function NewsBoard({ isEditorMode = false }: NewsBoardProps) {
               <label className="text-sm font-medium text-foreground/70 mb-1 block">
                 Inhalt
               </label>
-              <Textarea
-                placeholder="Schreiben Sie hier Ihre Neuigkeiten..."
+              <RichTextEditor
                 value={content}
-                onChange={(e) => setContent(e.target.value)}
-                rows={4}
-                className="bg-white dark:bg-background resize-none"
+                onChange={setContent}
+                placeholder="Schreiben Sie hier Ihre Neuigkeiten..."
               />
             </div>
             <div>
