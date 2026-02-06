@@ -156,7 +156,6 @@ All colors MUST be HSL.
   
   .prose strong {
     font-weight: 600;
-    color: hsl(var(--foreground));
   }
   
   .prose em {
