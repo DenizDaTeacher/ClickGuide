@@ -705,7 +705,7 @@ export function WorkflowStepEditor({
                           <div className="flex items-center justify-between">
                             <div>
                               <div className="font-medium text-sm">{subStep.title}</div>
-                              <div className="text-xs text-muted-foreground">{subStep.description}</div>
+                              <div className="text-xs text-muted-foreground prose prose-xs max-w-none" dangerouslySetInnerHTML={{ __html: subStep.description }} />
                             </div>
                             <div className="flex items-center space-x-1">
                               <Button
