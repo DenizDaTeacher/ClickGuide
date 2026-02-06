@@ -554,12 +554,10 @@ export function WorkflowStepEditor({
 
           <div className="space-y-2">
             <Label htmlFor="description">Beschreibung</Label>
-            <Textarea
-              id="description"
+            <RichTextEditor
               value={formData.description}
-              onChange={(e) => handleInputChange('description', e.target.value)}
+              onChange={(value) => handleInputChange('description', value)}
               placeholder="Beschreibung des Schritts"
-              rows={3}
             />
           </div>
 
