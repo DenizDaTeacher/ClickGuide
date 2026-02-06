@@ -541,7 +541,7 @@ export default function AgentMode({
                                         <span className="font-medium text-sm">{subStep.title}</span>
                                         {currentSubStepIndex === index && <Badge variant="default" className="ml-auto">Aktuell</Badge>}
                                       </div>
-                                      {currentSubStepIndex === index && subStep.description && <p className="text-sm text-muted-foreground mt-2">{subStep.description}</p>}
+                                      {currentSubStepIndex === index && subStep.description && <div className="text-sm text-muted-foreground mt-2 prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: subStep.description }} />}
                                     </div>)}
                                   </div>}
                               
