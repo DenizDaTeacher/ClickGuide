@@ -466,7 +466,7 @@ export default function AgentMode({
                     <User className="w-4 h-4 mr-2" />
                     Was zu tun ist:
                   </h3>
-                  <p className="text-muted-foreground">{currentDisplayStep.description}</p>
+                  <div className="text-muted-foreground prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: currentDisplayStep.description }} />
                 </div>
 
                 {/* Display image if available */}
