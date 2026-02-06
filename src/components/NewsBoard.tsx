@@ -2,8 +2,8 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { RichTextEditor } from '@/components/RichTextEditor';
 import { Megaphone, Edit, Save, X, Trash2, Image as ImageIcon, AlignLeft, AlignCenter, AlignRight } from 'lucide-react';
 import { useAnnouncements, ImageSettings } from '@/hooks/useAnnouncements';
 import { cn } from '@/lib/utils';
@@ -375,12 +375,10 @@ export function NewsBoard({ isEditorMode = false }: NewsBoardProps) {
               <label className="text-sm font-medium text-foreground/70 mb-1 block">
                 Inhalt
               </label>
-              <Textarea
-                placeholder="Schreiben Sie hier Ihre Neuigkeiten..."
+              <RichTextEditor
                 value={content}
-                onChange={(e) => setContent(e.target.value)}
-                rows={4}
-                className="bg-white dark:bg-background resize-none"
+                onChange={setContent}
+                placeholder="Schreiben Sie hier Ihre Neuigkeiten..."
               />
             </div>
             <div>
