@@ -119,9 +119,7 @@ export function StepNode({ step, onClick, onMove, onDelete }: StepNodeProps) {
           </div>
         </div>
         
-        <p className="text-xs text-muted-foreground mb-3 line-clamp-2">
-          {step.description}
-        </p>
+        <div className="text-xs text-muted-foreground mb-3 line-clamp-2 prose prose-xs max-w-none" dangerouslySetInnerHTML={{ __html: step.description }} />
 
         {step.nextStepConditions.length > 0 && (
           <div className="mb-3">

@@ -243,9 +243,7 @@ function SortableStepCard({ step, index, onEdit, onDelete, onUpdateStep }: Sorta
         </div>
       </CardHeader>
       <CardContent>
-        <p className="text-muted-foreground text-sm mb-3">
-          {step.description}
-        </p>
+        <div className="text-muted-foreground text-sm mb-3 prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: step.description }} />
         <div className="bg-muted/50 p-3 rounded-lg">
           <p className="text-sm italic">"{step.communication}"</p>
         </div>
